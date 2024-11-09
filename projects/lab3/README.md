@@ -65,7 +65,7 @@ The basic component in a systolic is the **Processing Element (PE)**. For a outp
 All the input and output data are stored on a simulated 32-bit memory, find the start addresses of each parameter in the below form. 
 
 **Important Notice:**
-1. For the input and weight tensors stored in memory, they are both stored in NHWC format. The difference between NHWC and MCHW can be seen in the figure shown below.
+1. For the input and weight tensors stored in memory, they are both stored in NHWC format. The difference between NHWC and NCHW can be seen in the figure shown below.
 <p align="center">
   <img src ="images/data.png"  width="85%"/>
 </p>
