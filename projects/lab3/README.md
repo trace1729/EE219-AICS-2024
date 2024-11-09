@@ -45,6 +45,13 @@ To leverage the efficiency of matrix multiplications in systolic arrays, the con
 
 2. **Construct Input Matrix X**: Flatten the padded tensor into matrix X with dimensions (OUT\_H * OUT\_W, FILTER\_SIZE * FILTER\_SIZE * IMG\_C). Here, each row of matrix X corresponds to the receptive field of the filter at a particular location on the input image.
 
+<p align="center">
+  <img src ="images/im2col.png"  width="85%"/>
+</p>
+<p align = "center">
+  <i>Example of Img2Col</i>
+</p>
+
 3. **Construct Weight Matrix W**: Reshape the convolutional filter tensor into matrix W with dimensions (FILTER\_SIZE * FILTER\_SIZE * IMG\_C, FILTER\_NUM).
 
 4. **Matrix Multiplication**: Multiply matrix X by matrix W to obtain matrix Y with dimensions (OUT\_H * OUT\_W, FILTER\_NUM).
