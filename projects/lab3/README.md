@@ -128,8 +128,8 @@ This module performs the im2col conversion. You need to read image values from m
 
 * Begin im2col conversion when `rst_n` is pulled up, pull `done` up when finish.
 * The memory can be read and write once per clock cycle.
-* Use **zero-pedding** in 2D convolution for 3x3 kernels.
-* 
+* Use **zero-padding** in 2D convolution for 3x3 kernels.
+* Function as **transposer** for 1x1 kernels.
 
 ### Module PE (pe.v)
 
