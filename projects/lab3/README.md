@@ -177,6 +177,7 @@ The basic function of PE is calculating the products of the input and weight,acc
 ### Module Systolic Array (systolic_array.v)
 
 The systolic array is constructed by instantiate PE modules. You need to connect the PEs properly and do shifts on the input and output.
+In this lab, we assume that the size of the systolic array matches the size of the output matrix. Specific parameters are listed in the table.
 
 #### Parameters
 
@@ -208,7 +209,11 @@ However, in practical accelerator scenarios, writing all `Y` back to memory at o
 here, for simplification, we assume that this operation is completed in one cycle.
 
 ## Simulation Environment
+### Tools
+We primarily use `Verilator` for simulation and view waveforms through VS-Code's `WaveTrace` extension. 
 
+`Verilator` has been installed on the cloud platform, it is an open-source tool that supports Verilog and SystemVerilog simulation. It features functions such as code quality checks, capable of compiling given circuit designs into C++. Afterward, a wrapper file is written to call the intermediate files generated earlier, which are then uniformly compiled and executed by a C compiler to complete the simulation.
+ 
 ### File location
 The three module files with ports defination are located in `vsrc/src/`
 
@@ -224,7 +229,6 @@ Simply run `make` under folder `lab3`, it will automatically generate inputs and
 <img src="images/sim2.png" width=300/>
 </center>
 
-
 (numbers are printed in hexadecimal)
 
 #### Specifiy parameters
@@ -232,6 +236,9 @@ You can specify the parameters like
 ```
 make IMG_C=1 IMG_W=1 IMG_H=1 FILTER_NUM=1 FILTER_SIZE=3
 ```
+
+#### Debug
+After simulation, there will be a new folder, `build_test` in the `lab3` dir. There are some intermidate simulation files and the final `*.vcd` waveform file. With the help of `WaveTrace`, we can directly click and view the `*.vcd` waveform in VS-Code.
 
 #### Clean
 It is recommended to run `make clean` before every simulation.
