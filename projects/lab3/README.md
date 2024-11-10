@@ -253,9 +253,9 @@ It will do multiple tests using parameters read from `test/cases.txt`, you can a
 ## Grading
 ### Code (80%)
 * Complete im2col (20%)
-* Complete systolic array
+* Complete systolic array (80%)
   * Fail all the tests (0%)
-  * Pass N tests (25% + 5% * N)
+  * Pass N tests (20% + 4% * N)
 
 Your code will be tested by the same testcases in `test/cases.txt`.
 
