@@ -210,7 +210,7 @@ here, for simplification, we assume that this operation is completed in one cycl
 
 ## Simulation Environment
 ### Tools
-We primarily use `Verilator` for simulation and view waveforms through VS-Code's `WaveTrace` extension. 
+We primarily use `Verilator` for simulation and view waveforms through VS-Code's `WaveTrace` extension or `gtkwave`.
 
 `Verilator` has been installed on the cloud platform, it is an open-source tool that supports Verilog and SystemVerilog simulation. It features functions such as code quality checks, capable of compiling given circuit designs into C++. Afterward, a wrapper file is written to call the intermediate files generated earlier, which are then uniformly compiled and executed by a C compiler to complete the simulation.
  
@@ -238,7 +238,18 @@ make IMG_C=1 IMG_W=1 IMG_H=1 FILTER_NUM=1 FILTER_SIZE=3
 ```
 
 #### Debug
-After simulation, there will be a new folder, `build_test` in the `lab3` dir. There are some intermidate simulation files and the final `*.vcd` waveform file. With the help of `WaveTrace`, we can directly click and view the `*.vcd` waveform in VS-Code.
+After simulation, there will be a new folder, `build_test` in the `lab3` dir. There are some intermidate simulation files and the final `*.vcd` waveform file. With the help of `WaveTrace`, we can directly click and view the `*.vcd` waveform in VS-Code. 
+
+<center class="center">
+<img src="images/wavetrace.png" width=700/>
+</center>
+
+
+However, `WaveTrace` can only display waveforms for up to eight signals, and the virtual desktop also has `gtkwave` software pre-installed. Since VS-Code does not support a graphical interface, we can use `MobaXterm` to establish an SSH remote connection to the server, or connect to the server via the web interface or client of `VMWare`. By entering `gtkwave` in the terminal, the software can be launched. To open a `*.vcd` file, go to `File -> Open New Tab`.
+
+<center class="center">
+<img src="images/gtkwave.png" width=700/>
+</center>
 
 #### Clean
 It is recommended to run `make clean` before every simulation.
