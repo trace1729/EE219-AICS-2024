@@ -1,4 +1,4 @@
-# Lab3: Systolic Array for Conv2D and GEMM
+# Lab3: Systolic Array for Conv2D
 
 ## Introduction
 This lab focuses on designing a **systolic array** based system to accelerate the convolutional computations in CNNs by transforming convolution operations into **General Matrix Multiplications (GEMM)**. The diagram of the system design is shown below.
@@ -17,7 +17,7 @@ Next, we will explore how to map Conv2D operations to GEMM and the advantages of
 ### Convolutional Layer Computation
 In CNNs, the input to a convolutional layer is generally represented as a 4-dimensional tensor with the shape (N, C, H, W) for NCHW format or (N, H, W, C) for NHWC format, where:
 
-- **N**: Number of input samples (batch size), typically 1 for inference.
+- **N**: Number of input samples (batch size), 1 for this lab.
 - **C**: Number of input channels.
 - **H**: Height of the input image.
 - **W**: Width of the input image.
@@ -54,7 +54,9 @@ To leverage the efficiency of matrix multiplications in systolic arrays, the con
 
 3. **Construct Weight Matrix W**: Reshape the convolutional filter tensor into matrix W with dimensions (FILTER\_SIZE * FILTER\_SIZE * IMG\_C, FILTER\_NUM).
 
-4. **Matrix Multiplication**: Multiply matrix X by matrix W to obtain matrix Y with dimensions (OUT\_H * OUT\_W, FILTER\_NUM).
+4. **Matrix Multiplication**: Multiply matrix X by matrix W to obtain matrix Y with dimensions (OUT\_H * OUT\_W, FILTER\_NUM). 
+
+**Note:** In the lab, we directly verify the result of the output matrix Y without converting it back into a tensor.
 
 ### Output Stationary Systolic Array
 
@@ -80,7 +82,11 @@ All the input and output data are stored on a simulated 32-bit memory, find the 
   <i>NCHW & NHWC</i>
 </p>
 
-2. The two-dimensional matrix obtained after **Im2Col** has a shape of (IMG_H * IMG_W, FILTER_SIZE * FILTER_SIZE * IMG_C) and is stored in **X_buffer** in **column-major** order. The weight matrix, with a shape of (FILTER_SIZE * FILTER_SIZE * IMG_C, FILTER_NUM), and the GEMM output matrix, with a shape of (IMG_H * IMG_W, FILTER_NUM), are stored in **W_buffer** and **Y** in **row-major** order, respectively.
+In this lab, since memory addresses are one-dimensional, for the input tensor, data from the **IMG_C** dimension is stored **first**, followed by the **IMG_W** dimension, and **finally** the **IMG_H** dimension.
+For the weight tensor, data from the **IMG_C** dimension is stored **first**, followed by the **FILTER_W** dimension, then the **FILTER_H** dimension, and **finally** the **FILTER_NUM** dimension.
+
+2. The two-dimensional **matrix X** obtained after **Im2Col** has a shape of (IMG_H * IMG_W, FILTER_SIZE * FILTER_SIZE * IMG_C) and is stored in **X_buffer** in **column-major** order. 
+The weight **matrix W**, with a shape of (FILTER_SIZE * FILTER_SIZE * IMG_C, FILTER_NUM), and the GEMM output matrix , with a shape of (IMG_H * IMG_W, FILTER_NUM), are stored in **W_buffer** and **Y** in **row-major** order, respectively.
 
 <p align="center">
   <img src ="images/order.png"  width="85%"/>
@@ -114,7 +120,7 @@ This module performs the im2col conversion. You need to read image values from m
 | IMG_H | image height |
 | DATA_WIDTH | data width |
 | ADDR_WIDTH | address width |
-| FILTER_SIZE | size of convolution kernel（e.g. 3 means 3x3 kernel） |
+| FILTER_SIZE | size of convolution kernel(e.g. 3 means 3x3 kernel) |
 | IMG_BASE | image base address |
 | IM2COL_BASE | im2col base address |
 
@@ -142,6 +148,7 @@ This module performs the im2col conversion. You need to read image values from m
 
 The basic function of PE is calculating the products of the input and weight,accumulating the partial sums and streaming the input and weight to its neighbors.
 
+**Notes:** It should be noted that the DATA_WIDTH for both input and output is always 32, so there's no need to worry about overflow issues during multiplication and addition operations. When testing, we use 8-bit unsigned data. When implementing multiplication, after performing the multiplication and addition operations on two DATA_WIDTH bits, the highest DATA_WIDTH bits can simply be ignored.
 #### Parameters
 
 | name | description |
@@ -196,6 +203,10 @@ The systolic array is constructed by instantiate PE modules. You need to connect
 
 * reset all the outputs to zero on `rst_n`.
 * pull `done` up when the last `Y` is valid.
+
+**Notes:** After the `done` signal is raised, the data in `Y` will be immediately written back to memory. 
+However, in practical accelerator scenarios, writing all `Y` back to memory at once is impractical; 
+here, for simplification, we assume that this operation is completed in one cycle.
 
 ## Simulation Environment
 
