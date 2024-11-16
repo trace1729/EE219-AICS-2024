@@ -12,8 +12,6 @@ $$
 result = clamp(round(\frac{weights}{scale}),-128,127)
 $$
 
-
-
 ## Quantize activations
 Let's look at the expression given in the problem statement. The product of the first two terms on the left side of the equal sign is the result of calculations using weights and activations that have been quantized to int8. The resulting integer value represented with 8 bits might overflow. Additionally, since the output of this layer serves as the input activation for the next layer, an additional quantization is required. Therefore, the left side of the equation needs to be divided by the scale of the output once more. It's important to note that the numerators of the fractions are all floating-point values, while the overall fraction represents the quantized integer value.
 $$
@@ -107,5 +105,4 @@ The quantization method for bias is exactly the same as that for activation beca
 $$
 scale = \frac{max(abs(bias/s_{w}/s_{initial_{input}}/\prod_{i=0}^{len(ss)} (ss[i][0]*ss[i][1])))}{127}
 $$
-
 
