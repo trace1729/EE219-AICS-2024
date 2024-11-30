@@ -39,8 +39,8 @@ module im2col #(
     wire is3x3 = FILTER_SIZE == 3;
     wire[7:0] padding = is3x3 ? 8'b00000001 : 8'b00000000;
     // reg [DATA_WIDTH] mat [(1+IMG_H) * (1+IMG_W) * IMG_C];
-    reg [DATA_WIDTH-1:0] mat [(1+IMG_H) * (1+IMG_W) * IMG_C - 1:0];
-    wire [7:0] mat_idx = (IMG_W) * (row_counter+padding) + (col_counter+padding) + channel_counter * (IMG_H * IMG_W);
+    reg [DATA_WIDTH-1:0] mat [(1+IMG_H) * (1+IMG_W) * IMG_C - 1];
+    reg [7:0] mat_idx;
     assign mem_wr_en = (state == WRITE);
 
     assign addr_rd = addr_rd_reg;
@@ -71,6 +71,7 @@ module im2col #(
                READ:
                     begin
                         // need to add padding to adjust the location
+                        mat_idx <= (IMG_W) * (row_counter+padding) + (col_counter+padding) + channel_counter * (IMG_H * IMG_W);
                         mat[mat_idx[4: 0]] <= data_rd;
                         if (channel_counter + 1 == IMG_C) begin
                             channel_counter <= 0;
