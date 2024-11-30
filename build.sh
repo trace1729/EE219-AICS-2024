@@ -133,12 +133,12 @@ if [[ "$BUILD" == "true" ]]; then
     [[ -d $BUILD_PATH ]] && find $BUILD_PATH -type l -delete
     # build the project
     build_proj
-    git commit
-    if [[ ! -f $ICS_PATH/.no_commit ]]; then
-        git add . -A --ignore-errors
-        (echo $NAME && echo $ID && hostnamectl && uptime) | git commit -F - -q --author='AICS-ShanghaiTech <tracer@ics>' --no-verify --allow-empty 1>/dev/null 2>&1
-        sync
-    fi
+    # git commit
+    # if [[ ! -f $ICS_PATH/.no_commit ]]; then
+    #     git add . -A --ignore-errors
+    #     (echo $NAME && echo $ID && hostnamectl && uptime) | git commit -F - -q --author='AICS-ShanghaiTech <tracer@ics>' --no-verify --allow-empty 1>/dev/null 2>&1
+    #     sync
+    # fi
 fi
 
 # Simulate
