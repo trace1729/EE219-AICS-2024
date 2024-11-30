@@ -16,4 +16,6 @@ module systolic_array#(
     output done
 );
 
+assign done = 1;
+
 endmodule

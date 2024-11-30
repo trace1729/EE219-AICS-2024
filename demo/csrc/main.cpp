@@ -52,6 +52,7 @@ int main()
     int ret = scanf("%d", &cycle);
     for (int i = 0; i < cycle; i++) {
         test(i);
+        printf("%d", dut_ptr->out);
     }
 #ifdef VM_TRACE
     fp->close();
