@@ -13,7 +13,7 @@ module pe #(
 );
 
 always @(posedge clk) begin
-    if (!rst) begin
+    if (rst) begin
         x_out <= 0;
         w_out <= 0;
         y_out <= 0;
