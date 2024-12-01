@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
-`define IMG_C 4
-`define IMG_W 1
+`define IMG_C 2
+`define IMG_W 3
 `define IMG_H 3
-`define FILTER_NUM 2
+`define FILTER_NUM 1
 `define FILTER_SIZE 1
 `define DEBUG 0
 `define STATE_IDLE 0
@@ -90,7 +90,7 @@ always @(posedge clk) begin
     data_rd <= mem[addr_rd];
     if (mem_wr_en) begin
         mem[addr_wr] <= data_wr;
-        $display("addr: %h, mem: %h", addr_wr - 1, mem[addr_wr - 1]);
+        // $display("addr: %h, mem: %h", addr_wr - 1, mem[addr_wr - 1]);
     end
 end
 
@@ -195,5 +195,9 @@ for (i = 0; i < M; i = i + 1) begin
         end
     end
 end
-
 endmodule
+
+
+
+
+
