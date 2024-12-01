@@ -25,25 +25,28 @@ module im2col #(
     reg [ADDR_WIDTH-1:0] addr_wr_reg;
     reg [DATA_WIDTH-1:0] data_wr_reg;
     reg [3:0] state;
-    reg [7:0] row_counter;
-    reg [7:0] col_counter;
-    reg [7:0] filter_row_counter;
-    reg [7:0] filter_col_counter;
-    reg [7:0] channel_counter;
-    reg [7:0] write_counter;
+    reg [11:0] row_counter;
+    reg [11:0] col_counter;
+    reg [11:0] filter_row_counter;
+    reg [11:0] filter_col_counter;
+    reg [11:0] channel_counter;
+    reg [11:0] write_counter;
 
     localparam IDLE = 4'b0000;
     localparam READ = 4'b0001;
     localparam WRITE = 4'b0010;
     localparam DONE = 4'b0011;
+
+    parameter idx1 = $clog2((2+IMG_H) * (2+IMG_W) * IMG_C) - 1;
+    parameter idx2 = $clog2((FILTER_SIZE * FILTER_SIZE * IMG_C) * ((2+IMG_H) * (2+IMG_W))) - 1;
     
     wire is3x3 = FILTER_SIZE == 3;
-    wire[7:0] padding = is3x3 ? 8'b00000001 : 8'b00000000;
+    wire[11:0] padding = is3x3 ? 12'b000000000001 : 12'b000000000000;
     // reg [DATA_WIDTH] mat [(1+IMG_H) * (1+IMG_W) * IMG_C];
-    reg [DATA_WIDTH-1:0] mat [(1+IMG_H) * (1+IMG_W) * IMG_C - 1];
-    reg [DATA_WIDTH-1:0] transform [(FILTER_SIZE * FILTER_SIZE * IMG_C) * (IMG_H * IMG_W)];
-    reg [7:0] mat_idx;
-    wire [7:0] idx;
+    reg [DATA_WIDTH-1:0] mat [(2+IMG_H) * (2+IMG_W) * IMG_C];
+    reg [DATA_WIDTH-1:0] transform [(FILTER_SIZE * FILTER_SIZE * IMG_C) * ((2+IMG_H) * (2+IMG_W))];
+    reg [11:0] mat_idx;
+    wire [11:0] idx;
     assign idx = row_counter * (FILTER_SIZE * FILTER_SIZE * IMG_C) + col_counter;
     assign mem_wr_en = (state == WRITE);
 
@@ -77,8 +80,10 @@ module im2col #(
                READ:
                     begin
                         // need to add padding to adjust the location
-                        mat_idx <= (IMG_W) * (row_counter+padding) + (col_counter+padding) + channel_counter * (IMG_H * IMG_W);
-                        mat[mat_idx[4: 0]] <= data_rd;
+                        mat_idx <= (IMG_W + 2 * padding) * (row_counter+padding) + (col_counter+padding) + channel_counter * 
+                                ((IMG_H + 2 * padding) * (IMG_W + 2 * padding));
+                        $display("mat_idx = %d", mat_idx);
+                        mat[mat_idx[idx1: 0]] <= (mat_idx[idx1: 0] == 0) && (padding == 1) ? 0 : data_rd;
                         if (channel_counter + 1 == IMG_C) begin
                             channel_counter <= 0;
                             if (col_counter + 1 == IMG_W) begin
@@ -116,7 +121,7 @@ module im2col #(
                                                  row * (FILTER_SIZE * FILTER_SIZE * IMG_C)
                                                  + c * FILTER_SIZE * FILTER_SIZE + fh * FILTER_SIZE + fw
                                                 ]
-                                                = mat[c * (IMG_H * IMG_W) + ih * IMG_W + iw];
+                                                = mat[c * ((IMG_H + 2 * padding) * (IMG_W + 2 * padding)) + ih * (IMG_W + 2 *padding) + iw];
                                             end
                                         end
                                     end
@@ -138,8 +143,10 @@ module im2col #(
                     end else begin
                         row_counter <= row_counter + 1;
                     end
-                    data_wr_reg <= transform[idx[3:0]];
-                    if (addr_wr_reg == FILTER_SIZE * FILTER_SIZE * IMG_C * IMG_H * IMG_W + IM2COL_BASE) begin
+                    data_wr_reg <= transform[idx[idx2:0]];
+                    if (addr_wr_reg == FILTER_SIZE * FILTER_SIZE * IMG_C *
+                        IMG_H * IMG_W + IM2COL_BASE)
+                    begin
                         state <= DONE;
                     end else begin
                         addr_wr_reg <= addr_wr_reg + 1;
