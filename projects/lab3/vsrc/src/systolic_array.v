@@ -42,7 +42,7 @@ always @(posedge clk) begin
         done <= 0;
     end else begin
         cnt <= cnt  + 1;
-        if (cnt >= (M * K)) begin
+        if (cnt >= (M > K? M: K) + N - 1) begin
             done <= 1;
         end else begin
             done <= 0;
