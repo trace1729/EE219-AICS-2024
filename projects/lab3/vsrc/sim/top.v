@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
-`define IMG_C 2
-`define IMG_W 3
-`define IMG_H 3
-`define FILTER_NUM 1
+`define IMG_C 16
+`define IMG_W 4
+`define IMG_H 4
+`define FILTER_NUM 7
 `define FILTER_SIZE 1
 `define DEBUG 0
 `define STATE_IDLE 0
@@ -196,6 +196,9 @@ for (i = 0; i < M; i = i + 1) begin
     end
 end
 endmodule
+
+
+
 
 
 
