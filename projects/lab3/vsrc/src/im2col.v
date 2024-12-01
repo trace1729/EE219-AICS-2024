@@ -82,7 +82,7 @@ module im2col #(
                         // need to add padding to adjust the location
                         mat_idx <= (IMG_W + 2 * padding) * (row_counter+padding) + (col_counter+padding) + channel_counter * 
                                 ((IMG_H + 2 * padding) * (IMG_W + 2 * padding));
-                        $display("mat_idx = %d", mat_idx);
+                        // $display("mat_idx = %d", mat_idx);
                         mat[mat_idx[idx1: 0]] <= (mat_idx[idx1: 0] == 0) && (padding == 1) ? 0 : data_rd;
                         if (channel_counter + 1 == IMG_C) begin
                             channel_counter <= 0;
