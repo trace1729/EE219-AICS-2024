@@ -19,7 +19,7 @@ always @(posedge clk) begin
         y_out <= 0;
     end else begin
         x_out <= x_in;
-        w_out <= w_out;
+        w_out <= w_in;
         y_out <= y_out + x_in * w_in;
     end
 end
