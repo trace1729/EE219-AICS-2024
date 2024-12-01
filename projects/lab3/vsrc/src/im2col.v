@@ -44,7 +44,7 @@ module im2col #(
     reg [DATA_WIDTH-1:0] transform [(FILTER_SIZE * FILTER_SIZE * IMG_C) * (IMG_H * IMG_W)];
     reg [7:0] mat_idx;
     wire [7:0] idx;
-                    assign idx = row_counter * (FILTER_SIZE * FILTER_SIZE * IMG_C) + col_counter;
+    assign idx = row_counter * (FILTER_SIZE * FILTER_SIZE * IMG_C) + col_counter;
     assign mem_wr_en = (state == WRITE);
 
     assign addr_rd = addr_rd_reg;
@@ -94,11 +94,11 @@ module im2col #(
                         end else begin
                             channel_counter <= channel_counter + 1;
                         end
-                        if (addr_rd_reg + 1 == IMG_C * IMG_H * IMG_W) begin
+                        if (addr_rd_reg - 1 == IMG_C * IMG_H * IMG_W) begin
                             row_counter <= 0;
                             channel_counter <= 0;
                             col_counter <= 0;
-                            addr_wr_reg <= IM2COL_BASE;
+                            addr_wr_reg <= IM2COL_BASE - 1;
                             mat_idx <= 0;
                             // Transform the data into column-major format
                             for (int h = 0; h < IMG_H; ++h) begin
@@ -139,7 +139,7 @@ module im2col #(
                         row_counter <= row_counter + 1;
                     end
                     data_wr_reg <= transform[idx[3:0]];
-                    if (addr_wr_reg + 1 == FILTER_SIZE * FILTER_SIZE * IMG_C * IMG_H * IMG_W + IM2COL_BASE) begin
+                    if (addr_wr_reg == FILTER_SIZE * FILTER_SIZE * IMG_C * IMG_H * IMG_W + IM2COL_BASE) begin
                         state <= DONE;
                     end else begin
                         addr_wr_reg <= addr_wr_reg + 1;

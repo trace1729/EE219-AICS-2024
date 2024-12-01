@@ -90,6 +90,7 @@ always @(posedge clk) begin
     data_rd <= mem[addr_rd];
     if (mem_wr_en) begin
         mem[addr_wr] <= data_wr;
+        $display("addr: %h, mem: %h", addr_wr - 1, mem[addr_wr - 1]);
     end
 end
 
@@ -178,8 +179,8 @@ always@(posedge clk or negedge rst_systolic) begin
     else begin
         X_count <= X_count + 1;
         if (X_count < N) begin
-            X   <= X_buffer[X_count];  
-            W   <= W_buffer[X_count];        
+            X   <= X_buffer[X_count];
+            W   <= W_buffer[X_count];
         end
         else begin
             X   <= 0;
