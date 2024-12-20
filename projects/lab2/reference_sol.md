@@ -70,10 +70,10 @@ Here, we use $$s_{Out_{conv2}}$$ not just to quantize $$Out_{conv2}$$, but rathe
 $$
 \frac{Out_{conv2}}{s_{W_{conv2}}s_{W_{conv1}}s_{In}s_{Out_{conv1}}}
 $$
-Now, we will match the variables in the formula one-to-one with the input variables in the quantization function. `activations` represents the floating-point output of the current layer, corresponding to the $Out_{conv2}$ in the formula. `s_w` represents the scale of the current layer's weight, corresponding to the $s_{W_{conv2}}$ in the formula.`s_initial_input` represents the snetwork input scale, corresponding to $s_{In}$ in the formula. Additionally, if we derive the output scale formulas for subsequent layers of the network, we can find that calculating the output scale of a certain layer always involves the product of the scaling factors of the weights and outputs of all previous network layers. This corresponds to the `ss` list in the function.
+Now, we will match the variables in the formula one-to-one with the input variables in the quantization function. `activations` represents the floating-point output of the current layer, corresponding to the $Out_{conv2}$ in the formula. `s_w` represents the scale of the current layer's weight, corresponding to the $s_{W_{conv2}}$ in the formula.`s_initial_input` represents the network input scale, corresponding to $s_{In}$ in the formula. Additionally, if we derive the output scale formulas for subsequent layers of the network, we can find that calculating the output scale of a certain layer always involves the product of the scaling factors of the weights and outputs of all previous network layers. This corresponds to the `ss` list in the function.
 
 $$
-scale = \frac{max(abs(activations/s_{w}/s_{initial_{input}}/\prod_{i=0}^{len(ss)} (ss[i][0]*ss[i][1])))}{127}
+s_{Out} = \frac{max(abs(activations/s_{w}/s_{initial_{input}}/\prod_{i=0}^{len(ss)} (ss[i][0]*ss[i][1])))}{127}
 $$
 
 
@@ -97,12 +97,12 @@ x = F.relu(x)
 ## Quantize Biases
 ### Question 5.1
 $$
-(\frac{W}{s_W}*\frac{In}{s_{In}}+\frac{\beta}{s_Ws_{In}})*\frac{1}{s_{Out} }= \frac{Out}{s_Ws_{In}s_{Out}}
+(\frac{W}{s_W}*\frac{In}{s_{In}}+\frac{\beta}{s_{\beta}})*\frac{1}{s_{Out} } = (\frac{W}{s_W}*\frac{In}{s_{In}}+\frac{\beta}{s_Ws_{In}})*\frac{1}{s_{Out} }= \frac{Out}{s_Ws_{In}s_{Out}}
 $$
 
 ### Question 5.3
 The quantization method for bias is exactly the same as that for activation because they share all the scales.
 $$
-scale = \frac{max(abs(bias/s_{w}/s_{initial_{input}}/\prod_{i=0}^{len(ss)} (ss[i][0]*ss[i][1])))}{127}
+s_{\beta} = s_{w}*s_{initial_{input}}*\prod_{i=0}^{len(ss)} (ss[i][0]*ss[i][1])
 $$
 
