@@ -2,52 +2,68 @@
 ; task1_2
 ; =======================================
 
-lui     x10,    2148532224             ; Load base address of A into x10
-lui     x11,    2150629376             ; Load base address of B into x11
-lui     x12,    2152726528             ; Load base address of C into x12
-lui     x13,    2154823680             ; Load base address of D into x13
+lui     x5,    2148532224             ; Load base address of A into x10
+lui     x6,    2150629376             ; Load base address of B into x11
+lui     x7,    2152726528             ; Load base address of C into x12
+lui     x8,    2154823680             ; Load base address of D into x13
 
-addi    x14,    x0,     8           ; Outer loop counter (rows of A)
-addi    x15,    x0,     8           ; Inner loop counter (columns of B)
-addi    x16,    x0,     4           ; Element size (4 bytes)
+addi x9, x0, 0 ; x9 -> i
+addi x12, x0, 8;
 
 outer_loop:
-slti    x17,    x14,    1           ; Check if outer loop counter is 0
-blt     x17,    x0,     end         ; Exit if all rows processed
-addi    x18,    x0,     8           ; Reset inner loop counter
-addi    x19,    x0,     0           ; Reset accumulator (dot product)
+
+blt x9, x12, next1;
+jal x0, end 
+
+next1:
+
+addi x10, x0, 0 ; x10 -> j
 
 inner_loop:
-slti    x20,    x18,    1           ; Check if inner loop counter is 0
-blt     x20,    x0,     store_result ; Exit if all columns processed
-addi    x21,    x0,     8           ; Reset element counter
-addi    x22,    x0,     0           ; Reset partial accumulator
+
+blt x10, x12, next2;
+addi x9, x9, 1
+jal x0, outer_loop;
+
+next2:
+
+addi x11, x0, 0
 
 dot_product:
-slti    x23,    x21,    1           ; Check if dot product loop counter is 0
-blt     x23,    x0,     accumulate  ; Exit if dot product is done
-lw      x24,    0(x10)              ; Load element from A
-lw      x25,    0(x11)              ; Load element from B
-mul     x26,    x24,    x25         ; Multiply A[row][col] * B[row][col]
-add     x22,    x22,    x26         ; Accumulate partial sum
-addi    x10,    x10,    4           ; Move to next element in A
-addi    x11,    x11,    32          ; Move to next row in B
-addi    x21,    x21,    -1          ; Decrement element counter
-jal     x0,     dot_product         ; Repeat for next element
 
-accumulate:
-lw      x27,    0(x12)              ; Load bias from C
-add     x22,    x22,    x27         ; Add bias to the accumulator
-sw      x22,    0(x13)              ; Store result into D
-addi    x13,    x13,    4           ; Increment D pointer
-addi    x18,    x18,    -1          ; Decrement inner loop counter
-jal     x0,     inner_loop          ; Repeat for next column
+blt x11, x12, next3 ; x11 -> z
+addi x10, x10, 1
+jal x0, inner_loop
 
-store_result:
-addi    x10,    x10,    32          ; Move to the next row of A
-addi    x12,    x12,    32          ; Move to the next row of C
-addi    x14,    x14,    -1          ; Decrement outer loop counter
-jal     x0,     outer_loop          ; Repeat for next row
+next3:
+addi x12, x0, 8
+addi x13, x0, 4
+mul x14, x9, x12 ; 8 * i
+add x14, x14, x11 ; 8 * i + z
+mul x14, x14, x13; (8 * i + z) * 4
+add x15, x14, x5; A[i][z]
+lw  x16, 0(x15) ; x16 = A[i][z]
+
+mul x14, x11, x12 ; 8 * z
+add x14, x14, x10 ; 8 * z + j
+mul x14, x14, x13; (8 * z + j) * 4
+add x15, x14, x6;  B[i][z]
+lw  x17, 0(x15) ; x17 = B[z][j]
+
+mul x14, x10, x12 ; 8 * i
+add x14, x14, x10 ; 8 * i + j
+mul x14, x14, x13; (8 * i + j) * 4
+add x15, x14, x7;  C[i][j]
+lw  x18, 0(x15) ; x18 = C[z][j]
+
+mul x19, x16, x17
+add x19, x19, x18
+
+add x15, x15, x8;
+sw  x19, 0(x15) ; D[i][j] = x19
+
+addi x11, x11, 1
+jal x0, dot_product 
 
 end:
-halt                                ; Terminate execution
+halt
