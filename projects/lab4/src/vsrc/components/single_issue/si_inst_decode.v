@@ -82,8 +82,9 @@ localparam ALU_OP_BLT   = 5'd10 ;
     assign rs1_addr_o      = rs1;
     assign rs2_addr_o      = rs2;
 
-    assign alu_opcode_o    = (opcode == `OPCODE_ADD)  ? ALU_OP_ADD   :
-                             (opcode == `OPCODE_ADDI) ? ALU_OP_ADD   :
+    assign alu_opcode_o    = (opcode == `OPCODE_ADD) || (opcode == `OPCODE_ADDI)
+                          || (opcode == `OPCODE_LW)  || (opcode == `OPCODE_SW)
+                                                      ? ALU_OP_ADD   :
                              (opcode == `OPCODE_MUL)  ? ALU_OP_MUL   :
                              (opcode == `OPCODE_AND)  ? ALU_OP_AND   :
                              (opcode == `OPCODE_SLL)  ? ALU_OP_SLL   :
@@ -97,7 +98,7 @@ localparam ALU_OP_BLT   = 5'd10 ;
     assign operand_1_o     = rs1_dout_i; // Default to rs1 data
     assign operand_2_o     = (opcode == `OPCODE_ADDI || opcode == `OPCODE_SLTI ||
                                opcode == `OPCODE_LW || opcode == `OPCODE_SW) ? 
-                              {{20{imm_i[11]}}, imm_i} : // Immediate for I-type
+                              {{20{imm_i[11]}}, imm_i} : // Immediate for I-type (sign-extending)
                               (opcode == `OPCODE_BNE || opcode == `OPCODE_BLT) ? 
                               rs2_dout_i :  // Branch compares rs2
                               rs2_dout_i; // Default rs2 data
@@ -121,7 +122,7 @@ localparam ALU_OP_BLT   = 5'd10 ;
                                opcode == `OPCODE_AUIPC || opcode == `OPCODE_MUL || 
                                opcode == `OPCODE_SLL || opcode == `OPCODE_AND || 
                                opcode == `OPCODE_SLTI);
-    assign id_wb_sel_o     = (opcode == `OPCODE_LW); // Choose memory result
+    assign id_wb_sel_o     = (opcode == `OPCODE_LW); // 0 for regular, 1 for memory
     assign id_wb_addr_o    = rd; // Write-back destinatio
 
 endmodule 
