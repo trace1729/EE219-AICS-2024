@@ -106,7 +106,7 @@ localparam ALU_OP_BLT   = 5'd10 ;
     always @(*) begin
         case (opcode)
             // I-type instructions (e.g., ADDI, SLTI, LW)
-            7'b001_0011: begin
+            7'b000_0011, 7'b001_0011: begin
                 operand_2_temp = {{20{imm_i[11]}}, imm_i}; // Sign-extend I-type immediate
             end
 

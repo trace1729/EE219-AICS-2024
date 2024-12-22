@@ -27,17 +27,17 @@ module si_alu #(
     output  [INST_AW-1:0]   control_pc_o
 );
 
-localparam ALU_OP_NOP   = 5'd0 ;
-localparam ALU_OP_ADD   = 5'd1 ;
-localparam ALU_OP_MUL   = 5'd2 ;
-localparam ALU_OP_BNE   = 5'd3 ;
-localparam ALU_OP_JAL   = 5'd4 ;
-localparam ALU_OP_LUI   = 5'd5 ;
-localparam ALU_OP_AUIPC = 5'd6 ;
-localparam ALU_OP_AND   = 5'd7 ;
-localparam ALU_OP_SLL   = 5'd8 ;
-localparam ALU_OP_SLT   = 5'd9 ;
-localparam ALU_OP_BLT   = 5'd10 ;
+    localparam ALU_OP_NOP   = 5'd0 ;
+    localparam ALU_OP_ADD   = 5'd1 ;
+    localparam ALU_OP_MUL   = 5'd2 ;
+    localparam ALU_OP_BNE   = 5'd3 ;
+    localparam ALU_OP_JAL   = 5'd4 ;
+    localparam ALU_OP_LUI   = 5'd5 ;
+    localparam ALU_OP_AUIPC = 5'd6 ;
+    localparam ALU_OP_AND   = 5'd7 ;
+    localparam ALU_OP_SLL   = 5'd8 ;
+    localparam ALU_OP_SLT   = 5'd9 ;
+    localparam ALU_OP_BLT   = 5'd10 ;
 
  // Internal registers
     reg [REG_DW-1:0] alu_result_r;     // Register to hold ALU result

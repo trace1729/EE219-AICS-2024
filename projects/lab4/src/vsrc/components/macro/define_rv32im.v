@@ -12,7 +12,7 @@
 `define OPCODE_LW       7'b000_0011
 `define FUNCT3_LW       3'b010
 
-`define OPCODE_SW       7'b010_0011 
+`define OPCODE_SW       7'b010_0011
 `define FUNCT3_SW       3'b010
 
 `define OPCODE_BNE      7'b110_0011
