@@ -55,7 +55,6 @@ module si_alu #(
             5'd1:
             begin
                 alu_result_r = operand_1_i + operand_2_i;  // ADD
-                $display("%d+%d=%d", operand_1_i, operand_2_i, alu_result_r);
             end
             5'd2: alu_result_r = operand_1_i * operand_2_i;  // MUL
             5'd7: alu_result_r = operand_1_i & operand_2_i;  // AND
