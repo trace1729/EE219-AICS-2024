@@ -91,7 +91,7 @@ localparam ALU_OP_BLT   = 5'd10 ;
                              (opcode == `OPCODE_SLTI) ? ALU_OP_SLT   :
                              (opcode == `OPCODE_BNE)  ? ALU_OP_BNE   :
                              (opcode == `OPCODE_BLT)  ? ALU_OP_BLT   :
-                             (opcode == `OPCODE_LUI)  ? ALU_OP_NOP   :
+                             (opcode == `OPCODE_LUI)  ? ALU_OP_LUI   :
                              (opcode == `OPCODE_AUIPC)? ALU_OP_NOP   :
                              ALU_OP_NOP; // Default
 
