@@ -96,18 +96,51 @@ localparam ALU_OP_BLT   = 5'd10 ;
                              ALU_OP_NOP; // Default
 
     assign operand_1_o     = rs1_dout_i; // Default to rs1 data
-    assign operand_2_o     = (opcode == `OPCODE_ADDI || opcode == `OPCODE_SLTI ||
-                               opcode == `OPCODE_LW || opcode == `OPCODE_SW) ? 
-                              {{20{imm_i[11]}}, imm_i} : // Immediate for I-type (sign-extending)
-                              (opcode == `OPCODE_BNE || opcode == `OPCODE_BLT) ? 
-                              rs2_dout_i :  // Branch compares rs2
-                              rs2_dout_i; // Default rs2 data
 
+    // Declare a temporary reg variable
+    reg [REG_DW-1:0] operand_2_temp;
+
+    // Connect the temp variable to the output wire
+    assign operand_2_o = operand_2_temp;
+
+    always @(*) begin
+        case (opcode)
+            // I-type instructions (e.g., ADDI, SLTI, LW)
+            7'b001_0011: begin
+                operand_2_temp = {{20{imm_i[11]}}, imm_i}; // Sign-extend I-type immediate
+            end
+
+            // S-type instructions (e.g., SW)
+            `OPCODE_SW: begin
+                operand_2_temp = {{20{imm_s[11]}}, imm_s}; // Sign-extend S-type immediate
+            end
+
+            // B-type instructions (e.g., BNE, BLT)
+            7'b110_0011: begin
+                operand_2_temp = rs2_dout_i; // Use rs2 for comparison in branches
+            end
+
+            // U-type instructions (e.g., LUI, AUIPC)
+            `OPCODE_LUI, `OPCODE_AUIPC: begin
+                operand_2_temp = {{imm_u[31:12]}, {12{1'b0}}}; // Upper immediate
+            end
+
+            // Default (e.g., R-type instructions)
+            default: begin
+                operand_2_temp = rs2_dout_i; // Default to rs2 value for R-type
+            end
+        endcase
+    end
+
+
+    // 鬼才设计，在 decode 里加上比较器
     assign branch_en_o     = (opcode == `OPCODE_BNE && rs1_dout_i != rs2_dout_i) ||
                              (opcode == `OPCODE_BLT && $signed(rs1_dout_i) < $signed(rs2_dout_i));
     assign branch_offset_o = {{19{imm_b[12]}}, imm_b}; // Sign-extended branch offset
 
     assign jump_en_o       = (opcode == `OPCODE_JAL || opcode == `OPCODE_JALR);
+
+    // decode 也有加法器
     assign jump_offset_o   = (opcode == `OPCODE_JAL) ? {{11{imm_j[20]}}, imm_j} : 
                              (opcode == `OPCODE_JALR) ? (rs1_dout_i + {{20{imm_i[11]}}, imm_i}) :
                              0;
@@ -116,13 +149,13 @@ localparam ALU_OP_BLT   = 5'd10 ;
     assign mem_wen_o       = (opcode == `OPCODE_SW);
     assign mem_din_o       = rs2_dout_i; // SW stores rs2
 
-    assign id_wb_en_o      = (opcode == `OPCODE_ADD || opcode == `OPCODE_ADDI || 
-                               opcode == `OPCODE_LW || opcode == `OPCODE_JAL || 
-                               opcode == `OPCODE_JALR || opcode == `OPCODE_LUI || 
-                               opcode == `OPCODE_AUIPC || opcode == `OPCODE_MUL || 
-                               opcode == `OPCODE_SLL || opcode == `OPCODE_AND || 
+    assign id_wb_en_o      = (opcode == `OPCODE_ADD || opcode == `OPCODE_ADDI ||
+                               opcode == `OPCODE_LW || opcode == `OPCODE_JAL ||
+                               opcode == `OPCODE_JALR || opcode == `OPCODE_LUI ||
+                               opcode == `OPCODE_AUIPC || opcode == `OPCODE_MUL ||
+                               opcode == `OPCODE_SLL || opcode == `OPCODE_AND ||
                                opcode == `OPCODE_SLTI);
     assign id_wb_sel_o     = (opcode == `OPCODE_LW); // 0 for regular, 1 for memory
-    assign id_wb_addr_o    = rd; // Write-back destinatio
+    assign id_wb_addr_o    = rd; // Write-back destination
 
 endmodule 

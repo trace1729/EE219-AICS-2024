@@ -24,6 +24,7 @@ integer i ;
 reg [REG_DW-1:0] regfile [2**REG_AW-1:0] ;
 
 always @(posedge clk ) begin
+    $display("%d", wb_addr_i);
     if ( rst == 1'b1 ) begin
         for(i=0; i<2**REG_AW; i=i+1) begin
             regfile[ i ] <= {(REG_DW){1'b0}} ;
