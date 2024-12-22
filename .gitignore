@@ -35,3 +35,4 @@
 !*.gif
 !*.asm
 !*.jpeg
+!/.vscode/*
