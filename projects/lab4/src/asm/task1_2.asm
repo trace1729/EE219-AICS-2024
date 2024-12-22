@@ -27,16 +27,14 @@ jal x0, outer_loop;
 
 next2:
 
-addi x11, x0, 0
+addi x11, x0, 0 ; cnt
+addi x20, x0, 0 ; accmulator
 
 dot_product:
-
 blt x11, x12, next3 ; x11 -> z
-addi x10, x10, 1
-jal x0, inner_loop
+jal x0, bias
 
 next3:
-addi x12, x0, 8
 addi x13, x0, 4
 mul x14, x9, x12 ; 8 * i
 add x14, x14, x11 ; 8 * i + z
@@ -50,20 +48,25 @@ mul x14, x14, x13; (8 * z + j) * 4
 add x15, x14, x6;  B[i][z]
 lw  x17, 0(x15) ; x17 = B[z][j]
 
+mul x19, x16, x17
+add x20, x20, x19
+addi x11, x11, 1
+jal x0, dot_product 
+
+bias:
 mul x14, x10, x12 ; 8 * i
 add x14, x14, x10 ; 8 * i + j
 mul x14, x14, x13; (8 * i + j) * 4
 add x15, x14, x7;  C[i][j]
 lw  x18, 0(x15) ; x18 = C[z][j]
 
-mul x19, x16, x17
-add x19, x19, x18
+add x20, x20, x18 ;
 
-add x15, x15, x8;
-sw  x19, 0(x15) ; D[i][j] = x19
+add x15, x14, x8;
+sw  x20, 0(x15) ; D[i][j] = x20
 
-addi x11, x11, 1
-jal x0, dot_product 
+addi x10, x10, 1
+jal x0, inner_loop
 
 end:
 halt
