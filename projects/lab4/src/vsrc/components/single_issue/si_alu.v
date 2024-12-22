@@ -52,7 +52,11 @@ localparam ALU_OP_BLT   = 5'd10 ;
     // ALU Operation
     always @(*) begin
         case (alu_opcode_i)
-            5'd1: alu_result_r = operand_1_i + operand_2_i;  // ADD
+            5'd1:
+            begin
+                alu_result_r = operand_1_i + operand_2_i;  // ADD
+                $display("%d+%d=%d", operand_1_i, operand_2_i, alu_result_r);
+            end
             5'd2: alu_result_r = operand_1_i * operand_2_i;  // MUL
             5'd7: alu_result_r = operand_1_i & operand_2_i;  // AND
             5'd8: alu_result_r = operand_1_i << operand_2_i[4:0]; // SLL
