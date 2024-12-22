@@ -42,7 +42,7 @@
 // -------------------------------------------------
 // RISC-32M Instruction OPCODE
 // -------------------------------------------------
-`define OPCODE_MUL      7'b011_0011 
+`define OPCODE_MUL      7'b011_0011
 `define FUNCT3_MUL      3'b000
 `define FUNCT7_MUL      7'b000_0001
 

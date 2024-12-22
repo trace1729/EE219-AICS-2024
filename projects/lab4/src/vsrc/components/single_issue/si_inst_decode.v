@@ -82,18 +82,86 @@ localparam ALU_OP_BLT   = 5'd10 ;
     assign rs1_addr_o      = rs1;
     assign rs2_addr_o      = rs2;
 
-    assign alu_opcode_o    = (opcode == `OPCODE_ADD) || (opcode == `OPCODE_ADDI)
-                          || (opcode == `OPCODE_LW)  || (opcode == `OPCODE_SW)
-                                                      ? ALU_OP_ADD   :
-                             (opcode == `OPCODE_MUL)  ? ALU_OP_MUL   :
-                             (opcode == `OPCODE_AND)  ? ALU_OP_AND   :
-                             (opcode == `OPCODE_SLL)  ? ALU_OP_SLL   :
-                             (opcode == `OPCODE_SLTI) ? ALU_OP_SLT   :
-                             (opcode == `OPCODE_BNE)  ? ALU_OP_BNE   :
-                             (opcode == `OPCODE_BLT)  ? ALU_OP_BLT   :
-                             (opcode == `OPCODE_LUI)  ? ALU_OP_LUI   :
-                             (opcode == `OPCODE_AUIPC)? ALU_OP_NOP   :
-                             ALU_OP_NOP; // Default
+    // Temporary reg variable for ALU opcode
+    reg [ALUOP_DW-1:0] alu_opcode_temp;
+
+    // Connect the temp variable to the output wire
+    assign alu_opcode_o = alu_opcode_temp;
+
+    // Logic to determine ALU operation
+    always @(*) begin
+        // Default assignment
+        alu_opcode_temp = ALU_OP_NOP;
+
+        case (opcode)
+            // R-type Instructions (e.g., ADD, AND, SLL, MUL)
+            `OPCODE_ADD: begin
+                if (funct3 == `FUNCT3_ADD && funct7 == `FUNCT7_ADD) begin
+                    alu_opcode_temp = ALU_OP_ADD; // ADD
+                end else if (funct3 == `FUNCT3_AND && funct7 == `FUCNT7_AND) begin
+                    alu_opcode_temp = ALU_OP_AND; // AND
+                end else if (funct3 == `FUNCT3_SLL && funct7 == `FUCNT7_SLL) begin
+                    alu_opcode_temp = ALU_OP_SLL; // SLL
+                end else if (funct3 == `FUNCT3_MUL && funct7 == `FUNCT7_MUL) begin
+                    alu_opcode_temp = ALU_OP_MUL; // MUL
+                end
+            end
+
+            // I-type Instructions (e.g., ADDI, SLTI, LW)
+            `OPCODE_ADDI: begin
+                if (funct3 == `FUNCT3_ADDI) begin
+                    alu_opcode_temp = ALU_OP_ADD; // ADDI
+                end
+                if (funct3 == `FUNCT3_SLTI) begin
+                    alu_opcode_temp = ALU_OP_SLT; // SLTI
+                end
+            end
+            `OPCODE_LW: begin
+                if (funct3 == `FUNCT3_LW) begin
+                    alu_opcode_temp = ALU_OP_ADD; // LW (Address Calculation)
+                end
+            end
+
+            // S-type Instructions (e.g., SW)
+            `OPCODE_SW: begin
+                if (funct3 == `FUNCT3_SW) begin
+                    alu_opcode_temp = ALU_OP_ADD; // SW (Address Calculation)
+                end
+            end
+
+            // B-type Instructions (e.g., BNE, BLT)
+            `OPCODE_BNE: begin
+                if (funct3 == `FUNCT3_BNE) begin
+                    alu_opcode_temp = ALU_OP_BNE; // BNE
+                end
+                if (funct3 == `FUNCT3_BLT) begin
+                    alu_opcode_temp = ALU_OP_BLT; // BLT
+                end
+            end
+            // U-type Instructions (e.g., LUI, AUIPC)
+            `OPCODE_LUI: begin
+                alu_opcode_temp = ALU_OP_LUI; // LUI
+            end
+            `OPCODE_AUIPC: begin
+                alu_opcode_temp = ALU_OP_NOP; // AUIPC (Handled in the PC logic)
+            end
+
+            // J-type Instructions (e.g., JAL, JALR)
+            `OPCODE_JAL: begin
+                alu_opcode_temp = ALU_OP_NOP; // JAL (Handled in the control flow logic)
+            end
+            `OPCODE_JALR: begin
+                if (funct3 == `FUNCT3_JALR) begin
+                    alu_opcode_temp = ALU_OP_NOP; // JALR (Handled in the control flow logic)
+                end
+            end
+
+            default: begin
+                alu_opcode_temp = ALU_OP_NOP; // Default: NOP
+            end
+        endcase
+    end
+
 
     assign operand_1_o     = rs1_dout_i; // Default to rs1 data
 
