@@ -35,6 +35,15 @@ always @( posedge clk ) begin
     end
 end
 
+wire [INST_DW-1: 0] inst;
+
+INST_RAMHelper inst_helper(
+    .clk   (clk   ),
+    .ren   (inst_en_o   ),
+    .raddr (inst_addr_o ),
+    .rdata (inst_o )
+);
+
 assign current_pc_o = addr ;
 assign inst_addr_o = addr ;
 assign inst_en_o = ( rst != 1'b1 ) ;

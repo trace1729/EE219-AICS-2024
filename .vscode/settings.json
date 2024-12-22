@@ -1,0 +1,22 @@
+{
+    "verilog.linting.verilator.includePath": [
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/tops",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/rvcpu",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/components",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/components/macro",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/components/single_issue",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/components/two_issue",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/components/three_issue",
+        "/home/trace/trace/learning/courses/SHTECH-EE219/EE219-AICS-2024/projects/lab4/src/vsrc/components/ram",
+    ],
+    "verilog.languageServer.veribleVerilogLs.enabled": true,
+    "verilog.languageServer.veribleVerilogLs.path": "verible-verilog-ls",
+    // "verilog.languageServer.veribleVerilogLs.arguments": "--rules=-explicit-function-task-parameter-type",
+    "verilog.ctags.path": "/opt/ctags/bin/ctags",
+    "ctags-companion.command": "ctags -R --fields=+nKz --langmap=SystemVerilog:+.v -R rtl /opt/uvm-1.2/src",
+    "files.watcherExclude": {
+        "**/target": true
+    },
+
+}
