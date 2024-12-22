@@ -19,7 +19,7 @@ module si_write_back #(
 
 assign wb_en_o      =   (rst == 1'b1)   ? 0 : id_wb_en_i ;
 assign wb_addr_o    =   (rst == 1'b1)   ? 0 : id_wb_addr_i ;
-assign wb_data_o    =   (rst == 1'b1)   ? 0 : 
+assign wb_data_o    =   (rst == 1'b1)   ? 0 :
                         (id_wb_sel_i)   ? mem_result_i  :   alu_result_i ;
 
 endmodule
