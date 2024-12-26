@@ -62,6 +62,7 @@ localparam VALU_OP_VMUL = 5'd2 ;
   wire [4:0] imm = inst_i[19:15];  // used for vadd.vx, vmul.vx, or memory base
 
   wire [4:0] vs2 = inst_i[24:20];  // typical vector source register
+  wire [4:0] vs3 = inst_i[11:7];  // typical vector source register
 
   wire is_vle32 = (opcode == `OPCODE_VL) && (funct3 == `WIDTH_VLE32) && (funct6 == `FUNCT6_VLE32);
   wire is_vse32 = (opcode == `OPCODE_VS) && (funct3 == `WIDTH_VSE32) && (funct6 == `FUNCT6_VSE32);
@@ -89,6 +90,28 @@ localparam VALU_OP_VMUL = 5'd2 ;
   reg               r_vid_wb_en;
   reg               r_vid_wb_sel;
   reg [VREG_AW-1:0] r_vid_wb_addr;
+
+  assign rs1_en_o       = r_rs1_en;
+  assign rs1_addr_o     = r_rs1_addr;
+
+  assign vs1_en_o       = r_vs1_en;
+  assign vs1_addr_o     = r_vs1_addr;
+
+  assign vs2_en_o       = r_vs2_en;
+  assign vs2_addr_o     = r_vs2_addr;
+
+  assign valu_opcode_o  = r_valu_opcode;
+  assign operand_v1_o   = r_operand_v1;
+  assign operand_v2_o   = r_operand_v2;
+
+  assign vmem_ren_o     = r_vmem_ren;
+  assign vmem_wen_o     = r_vmem_wen;
+  assign vmem_addr_o    = r_vmem_addr;
+  assign vmem_din_o     = r_vmem_din;
+
+  assign vid_wb_en_o    = r_vid_wb_en;
+  assign vid_wb_sel_o   = r_vid_wb_sel;
+  assign vid_wb_addr_o  = r_vid_wb_addr;
 
 
   always @(*) begin
@@ -134,7 +157,7 @@ localparam VALU_OP_VMUL = 5'd2 ;
       r_rs1_addr = rs1;
       // The data to store is from vs2
       r_vs2_en   = 1'b1;
-      r_vs2_addr = vs2;
+      r_vs2_addr = vs3;
       r_vmem_addr = rs1_dout_i; // set the memory address for write
       r_vmem_din     = vs2_dout_i;
 
@@ -213,21 +236,22 @@ localparam VALU_OP_VMUL = 5'd2 ;
     // else default => NOP
   end
 
-  always @(*) begin
-    // By default, just forward vector registers
-    r_operand_v1 = vs1_dout_i;
-    r_operand_v2 = vs2_dout_i;
+wire [31: 0] v_imm = {{27{imm[4]}}, imm};
 
+  always @(*) begin
     // If vadd.vx or vmul.vx => replicate scalar (rs1_dout_i) across each element
     if (is_vadd_vx || is_vmul_vx) begin
+      r_operand_v1 = vs1_dout_i;
       r_operand_v2 = {8{rs1_dout_i}};  // if SEW=32 and VLMAX=8
-    end
-
-    // If vadd.vi or vmul.vi => replicate the sign-extended imm
-    // as each 32-bit chunk
-    if (is_vadd_vi || is_vmul_vi) begin
-      reg [31:0] imm32 = {{27{imm[4]}}, imm};
-      r_operand_v2 = {8{imm32}};
+    end else if (is_vadd_vi || is_vmul_vi) begin
+      // If vadd.vi or vmul.vi => replicate the sign-extended imm
+      // as each 32-bit chunk
+      r_operand_v1 = vs1_dout_i;
+      r_operand_v2 = {8{v_imm}};
+    end else begin
+      // By default, just forward vector registers
+      r_operand_v1 = vs1_dout_i;
+      r_operand_v2 = vs2_dout_i;
     end
   end
 

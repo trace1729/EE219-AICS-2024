@@ -47,6 +47,7 @@ build_gdb:
 
 sim: build
 	${VERILATOR_PATH} -s -a ${SIM_PARAMETER}
+	gtkwave ./build/hw/top.vcd
 sim_gdb:
 	${VERILATOR_PATH} -s -g -a ${SIM_PARAMETER}
 
