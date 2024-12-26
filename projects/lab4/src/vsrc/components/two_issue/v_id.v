@@ -241,12 +241,12 @@ wire [31: 0] v_imm = {{27{imm[4]}}, imm};
   always @(*) begin
     // If vadd.vx or vmul.vx => replicate scalar (rs1_dout_i) across each element
     if (is_vadd_vx || is_vmul_vx) begin
-      r_operand_v1 = vs1_dout_i;
+      r_operand_v1 = vs2_dout_i;
       r_operand_v2 = {8{rs1_dout_i}};  // if SEW=32 and VLMAX=8
     end else if (is_vadd_vi || is_vmul_vi) begin
       // If vadd.vi or vmul.vi => replicate the sign-extended imm
       // as each 32-bit chunk
-      r_operand_v1 = vs1_dout_i;
+      r_operand_v1 = vs2_dout_i;
       r_operand_v2 = {8{v_imm}};
     end else begin
       // By default, just forward vector registers
