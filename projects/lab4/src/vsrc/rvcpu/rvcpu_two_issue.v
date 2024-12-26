@@ -47,4 +47,6 @@ module rvcpu_two_issue #(
     input   [VRAM_DW-1:0]           vram_dout_i
 );
 
-endmodule 
+
+
+endmodule

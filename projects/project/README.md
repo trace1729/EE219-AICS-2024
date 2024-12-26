@@ -18,8 +18,18 @@ Integrate the skills of using the numpy library in Python to build neural networ
 ## Detailed Task
 ### Neural-Networks
 
-You need to implement the entire network, including convolutional layers with output quantization and ReLU, pooling layers, and fully connected layers, and store the final 10-class result at the specified address (`ADDR_OUTFC3`). You can refer to this [head file](./sw/include/model.h). If there is a need to cache the output results of intermediate layers, we also provide storage addresses for those in the same head file. Here are some reminders for your reference.
-
+You need to implement the entire network, including convolutional layers with output quantization and ReLU, pooling layers, and fully connected layers, and store the final 10-class result at the specified address (`ADDR_OUTFC3`). You can refer to this [head file](./sw/include/model.h). If there is a need to cache the output results of intermediate layers, we also provide storage addresses for those in the same head file. Here are some reminders for your re
+## Submission
+Using the make command to export the git log file and pack up the `project` folder. You will get the compressed file `project.tar.gz` in `EE219-AICS-2024/projects`.
+``` bash
+make pack
+```
+Please compress `project.tar.gz` and the report into a `zip` file with the name `{ID1_Name1_ID2_Name2...}_EE219_Project.zip`, and submit to Blackboard. The file structure should be like this.
+```bash
+2024123456_李华_2023987654_李雷_EE219_Project.zip
+|-- report.pdf
+|-- project.tar.gz
+```
 #### 1. Output Quantization: A Hardware Friendly Approach?
 To deploy a neural network to hardware, it is usually necessary to quantize the model, as done in [Lab 2](../lab2/). However, the quantization in [Lab 2](../lab2/) does not account for the specific hardware constraints. 
 

@@ -35,3 +35,13 @@ lab4/makefile: run target which depends on
  - test_inst
   - use `TestInst1.py`
  - test_mac
+
+= two-issue processor
+
+- 这个 two-issue 也没给我 scalar alu 的module啊，直接把 single issue 的拿来用吗？
+
+First, we need to draw the two-issue processor architecture diagram, only with circuits in head, can we start to write rtl code.
+
+That's take the top to down strategy to design.
+
+First, need to understand the port meaning of each module.
