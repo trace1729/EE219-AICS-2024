@@ -3,10 +3,10 @@
 ; =======================================
 
 # Initialize Base Addresses
-lui     x5,    2148532224             ; Base address of A
-lui     x6,    2150629376             ; Base address of B
-lui     x7,    2152726528             ; Base address of C
-lui     x8,    2154823680             ; Base address of D
+lui     x1,    2148532224             ; Base address of A
+lui     x2,    2150629376             ; Base address of B
+lui     x3,    2152726528             ; Base address of C
+lui     x4,    2154823680             ; Base address of D
 
 addi    x9,    x0,     0              ; Row counter (i = 0)
 addi    x12,   x0,     8              ; Limit (8 rows/columns)
@@ -38,14 +38,14 @@ next3:
 mul     x14,   x9,    x12             ; 8 * i
 add     x14,   x14,   x11             ; 8 * i + z
 mul     x14,   x14,   x22               ; (8 * i + z) * 4
-add     x15,   x14,   x5              ; Address of A[i][z]
+add     x15,   x14,   x1              ; Address of A[i][z]
 lw      x16,   0(x15)                 ; x16 = A[i][z]
 
 # Load B[z][j]
 mul     x14,   x11,   x12             ; 8 * z
 add     x14,   x14,   x10             ; 8 * z + j
 mul     x14,   x14,   x22               ; (8 * z + j) * 4
-add     x15,   x14,   x6              ; Address of B[z][j]
+add     x15,   x14,   x2              ; Address of B[z][j]
 lw      x17,   0(x15)                 ; x17 = B[z][j]
 
 # Multiply and Accumulate
@@ -59,11 +59,11 @@ bias:
 mul     x14,   x9,    x12             ; 8 * i
 add     x14,   x14,   x10             ; 8 * i + j
 mul     x14,   x14,   x22               ; (8 * i + j) * 4
-add     x15,   x14,   x7              ; Address of C[i][j]
+add     x15,   x14,   x3              ; Address of C[i][j]
 lw      x18,   0(x15)                 ; x18 = C[i][j]
 add     x20,   x20,   x18             ; Add bias to accumulator
 
-add     x15,   x14,   x8              ; Address of D[i][j]
+add     x15,   x14,   x4              ; Address of D[i][j]
 sw      x20,   0(x15)                 ; D[i][j] = x20
 
 addi    x10,   x10,   1               ; Increment column counter
