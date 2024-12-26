@@ -30,7 +30,7 @@ addi    x19, x2, 0                    ; nop                                     
 inner_loop:
 blt     x10,   x12,   dot_product     ; nop                                       ; If j < 8, process column
 addi    x9,    x9,     1              ; nop                                       ; Increment row counter
-addi    x5, x5, 256                   ; nop                                       ; next row of A
+addi    x5, x5, 32                  ; nop                                       ; next row of A
 jal     x0,    outer_loop             ; nop                                       ; Go to next row
 
 dot_product:
@@ -62,7 +62,7 @@ addi    x17, x17, 4                  ; nop                                      
 addi    x18, x18, 4                  ; nop                                       ; update C
 
 addi    x10,   x10,   1              ; nop                                       ; Increment column counter
-addi    x19, x19, 256                ; nop                                       ; next column for B
+addi    x19, x19, 32                ; nop                                       ; next column for B
 jal     x0,    inner_loop            ; nop                                       ; Repeat inner loop
 
 end:
