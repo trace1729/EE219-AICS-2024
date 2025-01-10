@@ -49,6 +49,7 @@ rvcpu RV64I(
 );
 
 wire [63:0] rom_rdata;
+// fetch two instructions in one shot
 assign inst = inst_addr[2] ? rom_rdata[63 : 32] : rom_rdata[31 : 0];
 ROMHelper ROM_INST(
   .clk              (clock),
