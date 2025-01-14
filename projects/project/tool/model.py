@@ -34,6 +34,7 @@ CIFAR10_CLASS   = ["airplane","automobile","bird","cat","deer","dog","frog","hor
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
+        # input channel 为 3，output channel 为 5，kernel size 为 3 的卷积运算
         self.conv1  = nn.Conv2d(3, 12, 5, bias=False)
         self.pool   = nn.MaxPool2d(2, 2)
         self.conv2  = nn.Conv2d(12, 32, 3, bias=False)
@@ -42,6 +43,7 @@ class Network(nn.Module):
         self.fc3    = nn.Linear(64, 10, bias=True)
     def quantize(self, x, scale, is_input=False):
         if not is_input:
+            # find the approximate power of 2 to the scale
             n = round(math.log2(scale))
             #print(scale,2**n)
             x = torch.clamp(torch.round(x/(2**n)), min=-128, max=127)
