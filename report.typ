@@ -16,157 +16,199 @@
 
 = Neural-Networks
 
-== Golden Reference
-
-#figure(
-  image("img/1.png", width: 80%),
-  caption: [
-  ],
-)
-
-- [x] LeNet的C语言实现（python版本用）【具体的实现看model.py】
-
-
-```python
-=== Network Input ===
-Shape: [1, 3, 32, 32]
-First few values: 27 39 48 62 49 38 40 38 42 51
-================
-
-
-=== Goden_Conv1 not quantize Output ===
-Shape: [1, 12, 28, 28]
-First few values: 1560 1681 2175 9030 18682 32464 46310 53392 50909 48041
-================
-
-
-=== Goden_Conv1 Output ===
-Shape: [1, 12, 28, 28]
-First few values: 1 1 1 4 9 16 23 26 25 23
-================
-
-Goden_CONV1 output shape: torch.Size([1, 12, 28, 28])
-
-=== Goden_Pool1 Output ===
-Shape: [1, 12, 14, 14]
-First few values: 4 4 16 26 25 24 24 24 24 22
-================
-
-Goden_POOL1 output shape: torch.Size([1, 12, 14, 14])
-
-=== Goden_Conv2 Output ===
-Shape: [1, 32, 12, 12]
-First few values: 0 0 0 0 0 0 0 0 0 0
-================
-
-Goden_CONV2 output shape: torch.Size([1, 32, 12, 12])
-
-=== Goden_Pool2 Output ===
-Shape: [1, 32, 6, 6]
-First few values: 0 0 0 0 0 0 0 0 0 0
-================
-
-Goden_POOL2 output shape: torch.Size([1, 32, 6, 6])
-
-=== Goden_FC1 Output ===
-Shape: [1, 256]
-First few values: 0 0 0 14 0 0 17 0 0 0
-================
-
-Goden_FC1 output shape: torch.Size([1, 256])
-
-=== Goden_FC2 Output ===
-Shape: [1, 64]
-First few values: 0 0 23 0 0 0 2 4 4 0
-================
-
-Goden_FC2 output shape: torch.Size([1, 64])
-
-=== Goden_FC3 Output (Logits) ===
-Shape: [1, 10]
-First few values: 29 -4 17 -6 -2 -16 3 -38 18 -6
-================
-
-Goden_FC3 output shape: torch.Size([1, 10])
-Quantized model inference golden result: [29.0, -4.0, 17.0, -6.0, -2.0, -16.0, 3.0, -38.0, 18.0, -6.0]
-Groundtruth of this image: airplane
-Shape of the input image: (3, 32, 32)
-------------------------------------------------------------------------------------------------
-Shape of the int8 conv1 weight is: (12, 3, 5, 5)
-Output scale for conv1 is 1901.866 but is quantized to 2048, which can be implemented by >> 11 bits.
-------------------------------------------------------------------------------------------------
-Shape of the int8 conv2 weight is: (32, 12, 3, 3)
-Output scale for conv2 is 239.797 but is quantized to 256, which can be implemented by >> 8 bits.
-------------------------------------------------------------------------------------------------
-Shape of the int8 fc1 weight is: (256, 1152)
-Output scale for fc1 is 474.217 but is quantized to 512, which can be implemented by >> 9 bits.
-------------------------------------------------------------------------------------------------
-Shape of the int8 fc2 weight is: (64, 256)
-Output scale for fc2 is 371.061 but is quantized to 512, which can be implemented by >> 9 bits.
-------------------------------------------------------------------------------------------------
-Shape of the int8 fc3 weight is: (10, 64)
-Shape of the int16 fc3 bias is: (10,)
-Output scale for fc3 is 183.410 but is quantized to 256, which can be implemented by >> 8 bits.
-------------------------------------------------------------------------------------------------
-```
-
 == LeNet-like Model implemented in C (scalar version)
 
-memory access module：Memory access interface is implemented through `read_memory` and `write_memory` functions. These functions utilize the `uint8_t` type for address operations, ensuring compatibility with the hardware platform. The `read_memory` function directly accesses memory through address conversion, while the `write_memory` function implements byte-by-byte data writing.
+1.memory access module：Memory access interface is implemented through `read_memory` and `write_memory` functions. These functions utilize the `uint8_t` type for address operations, ensuring compatibility with the hardware platform. The `read_memory` function directly accesses memory through address conversion, while the `write_memory` function implements byte-by-byte data writing.
 
-#figure(
-  image("img/2.png", width: 80%),
-  caption: [
-  ],
-)
+```C
+uint8_t* read_memory(uint32_t addr) {
+    return (uint8_t*)(uintptr_t)addr;
+}
 
-debug module：The `print_tensor` function provides visualization capabilities for tensor data. This function utilizes the `int8_t` data type for storing actual values and is capable of displaying the tensor's shape along with its first 20 values.
+void write_memory(uint32_t addr, uint8_t* data, size_t size) {
+    uint8_t* memory = (uint8_t*)(uintptr_t)addr;
+    for (size_t i = 0; i < size; ++i) {
+        memory[i] = data[i];
+    }
+}
+```
 
-#figure(
-  image("img/202501162108661.png", width: 80%),
-  caption: [
-  ],
-)
+2.debug module：The `print_tensor` function provides visualization capabilities for tensor data. This function utilizes the `int8_t` data type for storing actual values and is capable of displaying the tensor's shape along with its first 20 values.
 
-quantization module：The quantization process is implemented through the `quantize` function, which replaces floating-point division with power-of-two shift operations. This function accepts a 32-bit integer input value and a scaling factor power, producing an 8-bit quantized output.
+```C
+void print_tensor(const char* name, int8_t* data, int channels, int height, int width) {
+    printf("\n=== %s ===\n", name);
+    printf("Shape: [1, %d, %d, %d]\n", channels, height, width);
+    printf("First few values: ");
+    for (int i = 0; i < 20 && i < channels * height * width; i++) {
+        printf("%d ", data[i]);
+    }
+    printf("\n");
+    printf("================\n\n");
+}
+}
+```
+3.quantization module：The quantization process is implemented through the `quantize` function, which replaces floating-point division with power-of-two shift operations. This function accepts a 32-bit integer input value and a scaling factor power, producing an 8-bit quantized output.
 
-#figure(
-  image("img/3.png", width: 80%),
-  caption: [
-  ],
-)
+```C
+int8_t quantize(int32_t value, int scale_power) {
+    int scale = 1 << scale_power;
+    return (int8_t)((value + (scale >> 1)) / scale);
+}
 
-activation funtion（relu）：The `relu_fc` function implements the ReLU (Rectified Linear Unit) activation operation specifically for fully connected layers. This implementation is notable for its in-place modification of `int8_t` data, where negative values are set to zero. It's important to note that while this ReLU implementation is dedicated to fully connected layers, the convolutional layers incorporate their ReLU activation directly within their implementation.
+```
 
-#figure(
-  image("img/4.png", width: 80%),
-  caption: [
-  ],
-)
+4.activation funtion（relu）：The `relu_fc` function implements the ReLU (Rectified Linear Unit) activation operation specifically for fully connected layers. This implementation is notable for its in-place modification of `int8_t` data, where negative values are set to zero. It's important to note that while this ReLU implementation is dedicated to fully connected layers, the convolutional layers incorporate their ReLU activation directly within their implementation.
 
-Convolutional Layer： The `conv2d` function implements two-dimensional convolution operations. This implementation processes quantized inputs and weights (both using int8_t data type) and produces outputs that are quantized and processed through ReLU activation. The function accommodates multi-channel input and output configurations, executing fundamental sliding window convolution operations.
+```C
+void relu_fc(int8_t* data, int size) {
+    for (int i = 0; i < size; i++) {
+        if (data[i] < 0) {
+            data[i] = 0;
+        }
+    }
+}
+```
 
-#figure(
-  image("img/5.png", width: 80%),
-  caption: [
-  ],
-)
+5.Convolutional Layer： The `conv2d` function implements two-dimensional convolution operations. This implementation processes quantized inputs and weights (both using int8_t data type) and produces outputs that are quantized and processed through ReLU activation. The function accommodates multi-channel input and output configurations, executing fundamental sliding window convolution operations.
 
-Pooling Layer： The `maxpool2d` function executes maximum pooling operations using a 2×2 window configuration. This implementation maintains channel dimensionality while reducing spatial dimensions by half. The implementation methodology closely mirrors that of the conv2d function, utilizing a similar nested loop structure.
+```C
+void conv2d(uint32_t input_addr, uint32_t weight_addr, uint32_t scale_addr, uint32_t output_addr,
+            int input_channels, int output_channels, int kernel_size, int input_size, int output_size) {
+    int8_t* input = (int8_t*)read_memory(input_addr);
+    int8_t* weights = (int8_t*)read_memory(weight_addr);
+    int8_t scale_power = *read_memory(scale_addr);
+    int8_t* output = (int8_t*)(uintptr_t)output_addr;
+    
+    int padding = 0;
+    int calc_count = 0;
 
-#figure(
-  image("img/6.png", width: 80%),
-  caption: [
-  ],
-)
+    print_tensor("Conv2D Input", input, input_channels, input_size, input_size);
+    
+    for (int oc = 0; oc < output_channels; ++oc) {
+        for (int oy = 0; oy < output_size; ++oy) {
+            for (int ox = 0; ox < output_size; ++ox) {
+                int32_t sum = 0;
+                
+                if (calc_count < 10) {
+                    printf("\nCalculation #%d (oc=%d, oy=%d, ox=%d):\n", calc_count, oc, oy, ox);
+                }
+                
+                for (int ic = 0; ic < input_channels; ++ic) {
+                    for (int ky = 0; ky < kernel_size; ++ky) {
+                        for (int kx = 0; kx < kernel_size; ++kx) {
+                            int iy = oy + ky - padding;
+                            int ix = ox + kx - padding;
+                            
+                            if (iy >= 0 && iy < input_size && ix >= 0 && ix < input_size) {
+                                int input_idx = ((ic * input_size + iy) * input_size) + ix;
+                                int weight_idx = (((oc * input_channels + ic) * kernel_size + ky) * kernel_size) + kx;
+                                
+                                if (calc_count < 10) {
+                                    printf("  ic=%d, ky=%d, kx=%d: ", ic, ky, kx);
+                                    printf("input[%d]=%d * weight[%d]=%d\n", 
+                                           input_idx, input[input_idx], 
+                                           weight_idx, weights[weight_idx]);
+                                }
+                                
+                                sum += input[input_idx] * weights[weight_idx];
+                            }
+                        }
+                    }
+                }
+                
+                if (calc_count < 10) {
+                    printf("Final sum = %d\n", sum);
+                }
 
-Fully Connected Layer： The `fully_connected` function implements the operations for a fully connected layer. This implementation supports optional bias terms using the `int16_t` data type to accommodate a broader numerical range and incorporates quantization operations. The layer computes the final output by multiplying all input vectors with their corresponding weight vectors.
+                if(sum < 0) {
+                    sum = 0;
+                }
+                
+                int output_idx = (oc * output_size + oy) * output_size + ox;
+                output[output_idx] = quantize(sum, scale_power);
+                calc_count++;
+            }
+        }
+    }
+    print_tensor("Conv2D Output", output, output_channels, output_size, output_size);
+}
+```
 
-#figure(
-  image("img/7.png", width: 80%),
-  caption: [
-  ],
-)
+6.Pooling Layer： The `maxpool2d` function executes maximum pooling operations using a 2×2 window configuration. This implementation maintains channel dimensionality while reducing spatial dimensions by half. The implementation methodology closely mirrors that of the conv2d function, utilizing a similar nested loop structure.
+
+```C
+void maxpool2d(uint32_t input_addr, uint32_t output_addr, int channels, int input_size, int output_size) {
+    int8_t* input = (int8_t*)read_memory(input_addr);
+    int8_t* output = (int8_t*)(uintptr_t)output_addr;
+
+    printf("\nRunning MaxPool2D: input_addr=%x, output_addr=%x\n", input_addr, output_addr);
+    
+    print_tensor("MaxPool2D Input", input, channels, input_size, input_size);
+
+    for (int c = 0; c < channels; ++c) {
+        for (int oy = 0; oy < output_size; ++oy) {
+            for (int ox = 0; ox < output_size; ++ox) {
+                int max_val = -128;
+                for (int ky = 0; ky < 2; ++ky) {
+                    for (int kx = 0; kx < 2; ++kx) {
+                        int iy = oy * 2 + ky;
+                        int ix = ox * 2 + kx;
+                        int input_idx = (c * input_size + iy) * input_size + ix;
+                        if (input[input_idx] > max_val) {
+                            max_val = input[input_idx];
+                        }
+                    }
+                }
+                int output_idx = (c * output_size + oy) * output_size + ox;
+                output[output_idx] = max_val;
+            }
+        }
+    }
+    
+    print_tensor("MaxPool2D Output", output, channels, output_size, output_size);
+}
+```
+
+7.Fully Connected Layer： The `fully_connected` function implements the operations for a fully connected layer. This implementation supports optional bias terms using the `int16_t` data type to accommodate a broader numerical range and incorporates quantization operations. The layer computes the final output by multiplying all input vectors with their corresponding weight vectors.
+
+```C
+void fully_connected(uint32_t input_addr, uint32_t weight_addr, uint32_t bias_addr, uint32_t scale_addr,
+                     uint32_t output_addr, int input_size, int output_size) {
+    int8_t* input = (int8_t*)read_memory(input_addr);
+    int8_t* weights = (int8_t*)read_memory(weight_addr);
+    int16_t* bias = (int16_t*)read_memory(bias_addr);
+    int8_t scale_power = *read_memory(scale_addr);
+    int8_t* output = (int8_t*)(uintptr_t)output_addr;
+
+    printf("\nRunning Fully Connected: input_addr=%x, weight_addr=%x, bias_addr=%x, scale_addr=%x, output_addr=%x, scale_power=%d\n",
+           input_addr, weight_addr, bias_addr, scale_addr, output_addr, scale_power);
+    
+    printf("\n=== FC Input ===\n");
+    printf("Size: %d\n", input_size);
+    printf("First few values: ");
+    for (int i = 0; i < 10 && i < input_size; i++) {
+        printf("%d ", input[i]);
+    }
+    printf("\n================\n");
+
+    for (int o = 0; o < output_size; ++o) {
+        int32_t sum = bias ? bias[o] : 0;
+        for (int i = 0; i < input_size; ++i) {
+            sum += input[i] * weights[o * input_size + i];
+        }
+        output[o] = quantize(sum, scale_power);
+    }
+    
+    printf("\n=== FC Output ===\n");
+    printf("Size: %d\n", output_size);
+    printf("Values: ");
+    for (int i = 0; i < output_size && i < 10; i++) {
+        printf("%d ", output[i]);
+    }
+    printf("\n================\n");
+}
+```
 
 
 == The inference result (scalar version)
