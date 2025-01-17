@@ -231,7 +231,20 @@ Below is the implementation for each operation using custom instructions and `__
 
 == Interface Design 
 
-*1. Convolution 2D (`conv2d`)*
+
+*Steps*
+1. *Pack Parameters*: 
+   - We'll pack parameters such as `input_channels`, `output_channels`, `kernel_size`, `input_size`, and `output_size` into a single `32-bit` register (`packed1`).
+   - We'll then load addresses such as `input_addr`, `weight_addr`, `output_addr` into separate registers.
+   
+2. *Load Instructions*:
+   - We will use `lw` to load these packed parameters and addresses into registers.
+
+3. *Custom Instruction*:
+   - Finally, we will use a custom instruction to trigger the AI accelerator to perform the operation (convolution, maxpooling, or fully connected).
+
+
+*1. `conv2d` Implementation*
 
 ```c
 void conv2d(uint32_t input_addr, uint32_t weight_addr, uint32_t scale_addr,
@@ -239,55 +252,62 @@ void conv2d(uint32_t input_addr, uint32_t weight_addr, uint32_t scale_addr,
             uint8_t kernel_size, uint8_t input_size, uint8_t output_size) {
     int null;
 
-    // Pack parameters into two 32-bit words
+    // Packing multiple parameters into a single 32-bit register
     uint32_t packed1 = (input_channels & 0xFF) | 
                        ((output_channels & 0xFF) << 8) | 
-                       ((kernel_size & 0xFF) << 16) | 
+                       ((kernel_size & 0xFF) << 12) | 
+                       ((output_size & 0xFF) << 16) | 
                        ((input_size & 0xFF) << 24);
 
-    uint32_t packed2 = (output_size & 0xFF) |
+    uint32_t packed2 = (output_size & 0xFF) | 
                        ((input_addr & 0xFFFF) << 8) | 
                        ((weight_addr & 0xFFFF) << 24);
 
-    // Execute custom instruction
+    // Load packed parameters and addresses
     __asm__ __volatile__(
-        "lw a0, 0(%[scale_addr])\n"  // Load scaling factor into a0
-        "lw a1, 0(%[output_addr])\n" // Load output address into a1
-        // Custom instruction with packed parameters
+        "lw a0, %[packed1]\n"             // Load packed parameters into a0
+        "lw a1, %[input_addr]\n"          // Load input address into a1
+        "lw a2, %[weight_addr]\n"         // Load weight address into a2
+        "lw a3, %[output_addr]\n"         // Load output address into a3
+        "lw a4, %[scale_addr]\n"          // Load scale address into a4
+        // Custom instruction to initiate operation
         ".insn r 0x77, 0, 0, %[null], %[packed1], %[packed2]"
         : [null] "=r"(null)
         : [packed1] "r"(packed1), [packed2] "r"(packed2),
-          [scale_addr] "r"(scale_addr), [output_addr] "r"(output_addr)
-        : "a0", "a1");
+          [input_addr] "r"(input_addr), [weight_addr] "r"(weight_addr),
+          [output_addr] "r"(output_addr), [scale_addr] "r"(scale_addr)
+        : "a0", "a1", "a2", "a3", "a4");
 }
 ```
 
-
-*2. Max Pooling 2D (`maxpool2d`)*
+*2. `maxpool2d` Implementation*
 
 ```c
 void maxpool2d(uint32_t input_addr, uint32_t output_addr, uint8_t channels, 
                uint8_t input_size, uint8_t output_size) {
     int null;
 
-    // Pack parameters into a 32-bit word
+    // Packing multiple parameters into a single 32-bit register
     uint32_t packed = (channels & 0xFF) | 
                       ((input_size & 0xFF) << 8) | 
                       ((output_size & 0xFF) << 16) | 
                       ((input_addr & 0xFFFF) << 24);
 
-    // Execute custom instruction
+    // Load packed parameters and addresses
     __asm__ __volatile__(
-        "lw a0, 0(%[output_addr])\n" // Load output address into a0
-        // Custom instruction with packed parameters
-        ".insn r 0x77, 1, 0, %[null], %[packed], a0"
+        "lw a0, %[packed]\n"             // Load packed parameters into a0
+        "lw a1, %[output_addr]\n"        // Load output address into a1
+        // Custom instruction to initiate operation
+        ".insn r 0x77, 1, 0, %[null], %[packed], a1"
         : [null] "=r"(null)
         : [packed] "r"(packed), [output_addr] "r"(output_addr)
-        : "a0");
+        : "a0", "a1");
 }
 ```
 
-*3. Fully Connected Layer (`fully_connected`)*
+---
+
+*3. `fully_connected` Implementation*
 
 ```c
 void fully_connected(uint32_t input_addr, uint32_t weight_addr, uint32_t bias_addr, 
@@ -295,17 +315,17 @@ void fully_connected(uint32_t input_addr, uint32_t weight_addr, uint32_t bias_ad
                      uint16_t output_size) {
     int null;
 
-    // Pack parameters into two 32-bit words
+    // Packing parameters into two 32-bit registers
     uint32_t packed1 = (input_size & 0xFFFF) | ((output_size & 0xFFFF) << 16);
     uint32_t packed2 = (input_addr & 0xFFFF) | 
                        ((weight_addr & 0xFFFF) << 16) | 
                        ((bias_addr & 0xFFFF) << 24);
 
-    // Execute custom instruction
+    // Load packed parameters and addresses
     __asm__ __volatile__(
-        "lw a0, 0(%[scale_addr])\n"  // Load scaling factor into a0
-        "lw a1, 0(%[output_addr])\n" // Load output address into a1
-        // Custom instruction with packed parameters
+        "lw a0, %[scale_addr]\n"  // Load scaling factor into a0
+        "lw a1, %[output_addr]\n" // Load output address into a1
+        // Custom instruction to initiate operation
         ".insn r 0x77, 2, 0, %[null], %[packed1], %[packed2]"
         : [null] "=r"(null)
         : [packed1] "r"(packed1), [packed2] "r"(packed2),
@@ -313,6 +333,7 @@ void fully_connected(uint32_t input_addr, uint32_t weight_addr, uint32_t bias_ad
         : "a0", "a1");
 }
 ```
+
 
 == Using These Functions
 
@@ -530,118 +551,166 @@ After consulting with the TA, the project’s actual requirement is to implement
 
 === Implement vetcor processor
 
-regfile
+1. `rv_cpu`
+
+```verilog
+`include "v_defines.v"
+
+module v_rvcpu(
+    input                       clk,
+    input                       rst,
+    input   [`VINST_BUS]        inst ,
+
+    input   [`SREG_BUS]         vec_rs1_data,
+	output            	        vec_rs1_r_ena,
+	output  [`SREG_ADDR_BUS]   	vec_rs1_r_addr,
+
+    output                      vram_r_ena,
+    output  [`VRAM_ADDR_BUS]    vram_r_addr,
+    input   [`VRAM_DATA_BUS]    vram_r_data,
+
+    output                      vram_w_ena,
+    output  [`VRAM_ADDR_BUS]    vram_w_addr,
+    output  [`VRAM_DATA_BUS]    vram_w_data,
+    output  [`VRAM_DATA_BUS]    vram_w_mask
+);
+
+
+// -- Wires connected to u_v_id --
+wire                  v_rs1_en;
+wire [`REG_AW-1:0]     v_rs1_addr;
+wire [`REG_DW-1:0]     v_rs1_dout;
+
+wire                  vs1_en;
+wire [`VREG_AW-1:0]    vs1_addr;
+wire [`VREG_DW-1:0]    vs1_dout;
+
+wire                  vs2_en;
+wire [`VREG_AW-1:0]    vs2_addr;
+wire [`VREG_DW-1:0]    vs2_dout;
+
+wire [`VALUOP_DW-1:0]  valu_opcode;
+wire [`VREG_DW-1:0]    operand_v1;
+wire [`VREG_DW-1:0]    operand_v2;
+
+wire                  vmem_ren;
+wire                  vmem_wen;
+wire [`VMEM_AW-1:0]    vmem_addr;
+wire [`VMEM_DW-1:0]    vmem_din;
+
+wire                  vid_wb_en;
+wire                  vid_wb_sel;
+wire [`VREG_AW-1:0]    vid_wb_addr;
+
+
+v_id u_v_id(
+    .clk           (clk           ),
+    .rst           (rst           ),
+    .inst_i        (inst_1        ),
+    .rs1_en_o      (v_rs1_en      ),
+    .rs1_addr_o    (v_rs1_addr    ),
+    .rs1_dout_i    (v_rs1_dout    ),
+    .vs1_en_o      (vs1_en      ),
+    .vs1_addr_o    (vs1_addr    ),
+    .vs1_dout_i    (vs1_dout    ),
+    .vs2_en_o      (vs2_en      ),
+    .vs2_addr_o    (vs2_addr    ),
+    .vs2_dout_i    (vs2_dout    ),
+    .valu_opcode_o (valu_opcode ),
+    .operand_v1_o  (operand_v1  ),
+    .operand_v2_o  (operand_v2  ),
+    .vmem_ren_o    (vmem_ren    ),
+    .vmem_wen_o    (vmem_wen    ),
+    .vmem_addr_o   (vmem_addr   ),
+    .vmem_din_o    (vmem_din    ),
+    .vid_wb_en_o   (vid_wb_en   ),
+    .vid_wb_sel_o  (vid_wb_sel  ),
+    .vid_wb_addr_o (vid_wb_addr )
+);
+
+wire  [`VREG_DW-1:0] valu_result;
+
+v_alu u_v_alu(
+    .valu_opcode_i (valu_opcode ),
+    .operand_v1_i  (operand_v1  ),
+    .operand_v2_i  (operand_v2  ),
+    .valu_result_o (valu_result )
+);
+
+wire   [`VRAM_DW-1:0]   vmem_dout;
+
+v_mem_access u_v_mem_access(
+    .clk         (clk         ),
+    .rst         (rst         ),
+    .vmem_ren_i  (vmem_ren  ),
+    .vmem_wen_i  (vmem_wen  ),
+    .vmem_addr_i (vmem_addr ),
+    .vmem_din_i  (vmem_din  ),
+    .vmem_dout_o (vmem_dout ),
+    .vram_ren_o  (vram_ren_o  ),
+    .vram_wen_o  (vram_wen_o  ),
+    .vram_addr_o (vram_addr_o ),
+    .vram_mask_o (vram_mask_o ),
+    .vram_din_o  (vram_din_o  ),
+    .vram_dout_i (vram_dout_i )
+);
+
+
+wire                  vwb_en;
+wire  [`VREG_AW-1:0]   vwb_addr;
+wire  [`VREG_DW-1:0]   vwb_data;
+
+v_wb u_v_wb(
+    .clk           (clk           ),
+    .rst           (rst           ),
+    .vid_wb_en_i   (vid_wb_en  ),
+    .vid_wb_sel_i  (vid_wb_sel  ),
+    .vid_wb_addr_i (vid_wb_addr ),
+    .valu_result_i (valu_result ),
+    .vmem_result_i (vmem_dout  ),
+    .vwb_en_o      (vwb_en      ),
+    .vwb_addr_o    (vwb_addr    ),
+    .vwb_data_o    (vwb_data    )
+);
+
+
+v_regfile u_v_regfile(
+    .clk        (clk        ),
+    .rst        (rst        ),
+    .vwb_en_i   (vwb_en   ),
+    .vwb_addr_i (vwb_addr ),
+    .vwb_data_i (vwb_data ),
+    .vs1_en_i   (vs1_en   ),
+    .vs1_addr_i (vs1_addr ),
+    .vs1_data_o (vs1_dout ),
+    .vs2_en_i   (vs2_en   ),
+    .vs2_addr_i (vs2_addr ),
+    .vs2_data_o (vs2_dout )
+);
+
+
+endmodule
+
+```
+
+2. `inst_decode`
 
 ```verilog
 // =======================================
 // You need to finish this module
 // =======================================
 
-module mi2_regfile #(
-    parameter REG_DW    = 32,
-    parameter REG_AW    = 5
-)(
-    input                       clk,
-    input                       rst,
-
-    // Write-back for issue slot #1
-    input                       is1_wb_en_i,
-    input       [REG_AW-1:0]    is1_wb_addr_i,
-    input       [REG_DW-1:0]    is1_wb_data_i,
-
-    // Read port 1 for issue slot #1
-    input                       is1_rs1_en_i,
-    input       [REG_AW-1:0]    is1_rs1_addr_i,
-    output reg  [REG_DW-1:0]    is1_rs1_data_o,
-
-    // Read port 2 for issue slot #1
-    input                       is1_rs2_en_i,
-    input       [REG_AW-1:0]    is1_rs2_addr_i,
-    output reg  [REG_DW-1:0]    is1_rs2_data_o,
-
-    // Additional read port (scalar) for issue slot #2
-    // (e.g., used by vector instructions requiring a scalar operand or address)
-    input                       is2_rs1_en_i,
-    input       [REG_AW-1:0]    is2_rs1_addr_i,
-    output reg  [REG_DW-1:0]    is2_rs1_data_o
-);
-
-localparam REG_COUNT = (1 << REG_AW);  // e.g., 32 registers if REG_AW=5
-
-  // -------------------------------------------------------------------
-  // 1) Register File Array
-  // -------------------------------------------------------------------
-  reg [REG_DW-1:0] regfile[0:REG_COUNT-1];
-
-  // -------------------------------------------------------------------
-  // 2) Optional Reset Logic
-  // -------------------------------------------------------------------
-  // If you'd like all registers to be zero on reset, uncomment and modify:
-  integer i;
-  always @(posedge clk) begin
-    if (rst) begin
-      // Reset all registers to 0 (optional)
-      for (i = 0; i < REG_COUNT; i = i + 1) begin
-        regfile[i] <= {REG_DW{1'b0}};
-      end
-    end else begin
-      // -------------------------------------------------------------------
-      // 3) Synchronous Write
-      // -------------------------------------------------------------------
-      if (is1_wb_en_i) begin
-        // If you want x0 to remain 0, skip writing if is1_wb_addr_i == 0
-        if (is1_wb_addr_i != 0) begin
-          regfile[is1_wb_addr_i] <= is1_wb_data_i;
-        end
-        regfile[is1_wb_addr_i] <= is1_wb_data_i;
-      end
-    end
-  end
-
-  // -------------------------------------------------------------------
-  // 4) Asynchronous Read
-  // -------------------------------------------------------------------
-  always @(*) begin
-    // Default to 0
-    is1_rs1_data_o = {REG_DW{1'b0}};
-    if (is1_rs1_en_i) begin
-      is1_rs1_data_o = (is1_rs1_addr_i == 0) ? {REG_DW{1'b0}} : regfile[is1_rs1_addr_i];
-    end
-  end
-
-  always @(*) begin
-    is1_rs2_data_o = {REG_DW{1'b0}};
-    if (is1_rs2_en_i) begin
-      is1_rs2_data_o = (is1_rs2_addr_i == 0) ? {REG_DW{1'b0}} : regfile[is1_rs2_addr_i];
-    end
-  end
-
-  always @(*) begin
-    is2_rs1_data_o = {REG_DW{1'b0}};
-    if (is2_rs1_en_i) begin
-      is2_rs1_data_o = (is2_rs1_addr_i == 0) ? {REG_DW{1'b0}} : regfile[is2_rs1_addr_i];
-    end
-  end
-endmodule
-```
-id 
-
-```v
-// =======================================
-// You need to finish this module
-// =======================================
-
-`include "define_rv32v.v"
+`include "v_defines.v"
 
 module v_id #(
     parameter VLMAX     = 8,
     parameter VALUOP_DW = 5,
-    parameter VMEM_DW   = 256,
-    parameter VMEM_AW   = 32,
-    parameter VREG_DW   = 256,
+    parameter VMEM_DW   = 512,
+    parameter VMEM_AW   = 64,
+    parameter VREG_DW   = 512,
     parameter VREG_AW   = 5,
-    parameter INST_DW   = 32,
-    parameter REG_DW    = 32,
+    parameter INST_DW   = 64,
+    parameter REG_DW    = 64,
     parameter REG_AW    = 5
 ) (
     input                   clk,
@@ -886,66 +955,175 @@ wire [31: 0] v_imm = {{27{imm[4]}}, imm};
 
 
 endmodule
+
 ```
 
-alu 
+=== Modify the C code to use vector instruction
 
-```v
-// =======================================
-// You need to finish this module
-// =======================================
+due to time constraints, the work is not fully accomplished
 
-module v_alu #(
-    parameter SEW       = 32,
-    parameter VLMAX     = 8,
-    parameter VALUOP_DW = 5,
-    parameter VREG_DW   = 256
-)(
-    input  wire [VALUOP_DW-1:0] valu_opcode_i,
-    input  wire [VREG_DW-1:0]   operand_v1_i,
-    input  wire [VREG_DW-1:0]   operand_v2_i,
-    output reg  [VREG_DW-1:0]   valu_result_o
-);
+```c
+#include "trap.h"
+#include "model.h"
 
-localparam VALU_OP_NOP  = 5'd0;
-localparam VALU_OP_VADD = 5'd1;
-localparam VALU_OP_VMUL = 5'd2;
+uint8_t* read_memory(uint32_t addr) {
+    return (uint8_t*)(uintptr_t)addr;
+}
 
-// Declare arrays to hold element slices
-wire [SEW-1:0] v1_lanes [0:VLMAX-1];
-wire [SEW-1:0] v2_lanes [0:VLMAX-1];
+void write_memory(uint32_t addr, uint8_t* data, size_t size) {
+    uint8_t* memory = (uint8_t*)(uintptr_t)addr;
+    for (size_t i = 0; i < size; ++i) {
+        memory[i] = data[i];
+    }
+}
 
-generate
-  genvar i;
-  for (i = 0; i < VLMAX; i = i + 1) begin : GEN_LANES
-    // Extract each SEW-bit lane from the 256-bit operands
-    assign v1_lanes[i] = operand_v1_i[SEW*i +: SEW];
-    assign v2_lanes[i] = operand_v2_i[SEW*i +: SEW];
-  end
-endgenerate
+static inline int8_t quantize(int32_t value, int scale_power) {
+    int scale = 1 << scale_power;
+    return (int8_t)((value + (scale >> 1)) / scale);
+}
 
-reg [VREG_DW-1:0] add_result;
-reg [VREG_DW-1:0] mul_result;
+static inline int32_t vector_dot_1d(const int8_t* x, const int8_t* y, int length) {
+    int idx = 0;
+    int32_t sum = 0;
+    while (idx < length) {
+        int chunk = (length - idx < 128) ? (length - idx) : 128;
+        static int32_t partial_sum[128];
+        for (int i = 0; i < chunk; i++) {
+            partial_sum[i] = 0;
+        }
+        asm volatile (
+            "vsetvli t0, %2, e8, m1\n\t"
+            "vmv.v.i   v2, 0\n\t"
+            "vle8.v    v0, (%0)\n\t"
+            "vle8.v    v1, (%1)\n\t"
+            "vmacc.vv  v2, v0, v1\n\t"
+            "vse32.v   v2, (%3)\n\t"
+            :
+            : "r"(x + idx), "r"(y + idx), "r"(chunk), "r"(partial_sum)
+            : "t0", "v0", "v1", "v2", "memory"
+        );
+        for (int i = 0; i < chunk; i++) {
+            sum += partial_sum[i];
+        }
+        idx += chunk;
+    }
+    return sum;
+}
 
-integer j;
-always @(*) begin
-    // Compute element-wise results for add and mul
-    add_result = {VREG_DW{1'b0}};
-    mul_result = {VREG_DW{1'b0}};
+static inline void gather_input(const int8_t* input, int ic_count, int size, int iy, int ix, int8_t* buf) {
+    for (int ic = 0; ic < ic_count; ic++) {
+        int idx = (ic * size + iy) * size + ix;
+        buf[ic] = input[idx];
+    }
+}
 
-    for (j = 0; j < VLMAX; j = j + 1) begin
-        add_result[SEW*j +: SEW] = v1_lanes[j] + v2_lanes[j];
-        mul_result[SEW*j +: SEW] = v1_lanes[j] * v2_lanes[j];
-    end
-end
+static inline void gather_weight(const int8_t* weights, int oc, int ic_count, int ksize, int ky, int kx, int8_t* buf) {
+    for (int ic = 0; ic < ic_count; ic++) {
+        int idx = (((oc * ic_count) + ic) * ksize + ky) * ksize + kx;
+        buf[ic] = weights[idx];
+    }
+}
 
-always @(*) begin
-    // Select final output based on opcode
-    case (valu_opcode_i)
-        VALU_OP_VADD: valu_result_o = add_result;
-        VALU_OP_VMUL: valu_result_o = mul_result;
-        default:      valu_result_o = {VREG_DW{1'b0}}; // NOP or unrecognized
-    endcase
-end
-endmodule
+void conv2d(uint32_t input_addr, uint32_t weight_addr, uint32_t scale_addr, uint32_t output_addr,
+            int input_channels, int output_channels, int kernel_size, int input_size, int output_size) {
+    int8_t* input = (int8_t*)read_memory(input_addr);
+    int8_t* weights = (int8_t*)read_memory(weight_addr);
+    int8_t scale_power = *read_memory(scale_addr);
+    int8_t* output = (int8_t*)(uintptr_t)output_addr;
+    int8_t temp_in[1024];
+    int8_t temp_wt[1024];
+    int padding = 0;
+    for (int oc = 0; oc < output_channels; oc++) {
+        for (int oy = 0; oy < output_size; oy++) {
+            for (int ox = 0; ox < output_size; ox++) {
+                int32_t sum = 0;
+                for (int ky = 0; ky < kernel_size; ky++) {
+                    for (int kx = 0; kx < kernel_size; kx++) {
+                        int iy = oy + ky - padding;
+                        int ix = ox + kx - padding;
+                        if (iy >= 0 && iy < input_size && ix >= 0 && ix < input_size) {
+                            gather_input(input, input_channels, input_size, iy, ix, temp_in);
+                            gather_weight(weights, oc, input_channels, kernel_size, ky, kx, temp_wt);
+                            sum += vector_dot_1d(temp_in, temp_wt, input_channels);
+                        }
+                    }
+                }
+                if (sum < 0) sum = 0;
+                int out_idx = (oc * output_size + oy) * output_size + ox;
+                output[out_idx] = quantize(sum, scale_power);
+            }
+        }
+    }
+}
+
+void maxpool2d(uint32_t input_addr, uint32_t output_addr, int channels, int input_size, int output_size) {
+    int8_t* input = (int8_t*)read_memory(input_addr);
+    int8_t* output = (int8_t*)(uintptr_t)output_addr;
+    for (int c = 0; c < channels; c++) {
+        for (int oy = 0; oy < output_size; oy++) {
+            for (int ox = 0; ox < output_size; ox++) {
+                int max_val = -128;
+                for (int ky = 0; ky < 2; ky++) {
+                    for (int kx = 0; kx < 2; kx++) {
+                        int iy = oy * 2 + ky;
+                        int ix = ox * 2 + kx;
+                        int idx = (c * input_size + iy) * input_size + ix;
+                        if (input[idx] > max_val) {
+                            max_val = input[idx];
+                        }
+                    }
+                }
+                int out_idx = (c * output_size + oy) * output_size + ox;
+                output[out_idx] = max_val;
+            }
+        }
+    }
+}
+
+void fully_connected(uint32_t input_addr, uint32_t weight_addr, uint32_t bias_addr, uint32_t scale_addr,
+                     uint32_t output_addr, int input_size, int output_size) {
+    int8_t* input = (int8_t*)read_memory(input_addr);
+    int8_t* weights = (int8_t*)read_memory(weight_addr);
+    int16_t* bias = (int16_t*)read_memory(bias_addr);
+    int8_t scale_power = *read_memory(scale_addr);
+    int8_t* output = (int8_t*)(uintptr_t)output_addr;
+    for (int o = 0; o < output_size; o++) {
+        int32_t sum = bias ? bias[o] : 0;
+        sum += vector_dot_1d(input, &weights[o * input_size], input_size);
+        if (sum < 0) sum = 0;
+        output[o] = quantize(sum, scale_power);
+    }
+}
+
+void fully_connected_last_layer(uint32_t input_addr, uint32_t weight_addr, uint32_t bias_addr, uint32_t scale_addr,
+                                uint32_t output_addr, int input_size, int output_size) {
+    int8_t* input = (int8_t*)read_memory(input_addr);
+    int8_t* weights = (int8_t*)read_memory(weight_addr);
+    int16_t* bias = (int16_t*)read_memory(bias_addr);
+    int8_t scale_power = *read_memory(scale_addr);
+    int8_t* output = (int8_t*)(uintptr_t)output_addr;
+    for (int o = 0; o < output_size; o++) {
+        int32_t sum = bias ? bias[o] : 0;
+        sum += vector_dot_1d(input, &weights[o * input_size], input_size);
+        output[o] = quantize(sum, scale_power);
+    }
+}
+
+int main() {
+    printf("Starting inference...\n");
+    conv2d(ADDR_INPUT, ADDR_WCONV1, ADDR_SCONV1, ADDR_OUTCONV1, 3, 12, 5, 32, 28);
+    maxpool2d(ADDR_OUTCONV1, ADDR_OUTPOOL1, 12, 28, 14);
+    conv2d(ADDR_OUTPOOL1, ADDR_WCONV2, ADDR_SCONV2, ADDR_OUTCONV2, 12, 32, 3, 14, 12);
+    maxpool2d(ADDR_OUTCONV2, ADDR_OUTPOOL2, 32, 12, 6);
+    fully_connected(ADDR_OUTPOOL2, ADDR_WFC1, 0, ADDR_SFC1, ADDR_OUTFC1, 32 * 6 * 6, 256);
+    fully_connected(ADDR_OUTFC1, ADDR_WFC2, 0, ADDR_SFC2, ADDR_OUTFC2, 256, 64);
+    fully_connected_last_layer(ADDR_OUTFC2, ADDR_WFC3, ADDR_BFC3, ADDR_SFC3, ADDR_OUTFC3, 64, 10);
+    printf("\nInference done. Final output (logits):\n");
+    int8_t* p_outfc3 = (int8_t*)(uintptr_t)(ADDR_OUTFC3);
+    for (int i = 0; i < 10; i++) {
+        printf("Logit[%d] = %d\n", i, (int)p_outfc3[i]);
+    }
+    printf("\nInference completed.\n");
+    return 0;
+}
 ```
