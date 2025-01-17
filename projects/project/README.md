@@ -129,12 +129,13 @@ The final specific scoring criteria will be released later. In the competition, 
     - Hardware-Platform (10%)
     - Application-Software (10%)
 - Code (60%)
-    - HW (50%)
+    - HW (10%)
+        - vector processor
+    - SW (50%)
         - Convolution (15%)
         - ReLU (10%)
         - Pooling (10%)
         - FC (15%)
-    - SW (10%)
 - Competition (10%)
 
 ## Submission
